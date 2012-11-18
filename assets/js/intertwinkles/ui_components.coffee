@@ -1,0 +1,323 @@
+#
+# User menu
+#
+
+user_menu_template = _.template("""
+  <a class='user-menu dropdown-toggle' href='#' data-toggle='dropdown' role='button'>
+    <% if (user.icon && user.icon.tiny) { %>
+      <img src='<%= user.icon.tiny %>' alt='<%= user.icon.color %> <%= user.icon.name %>' />
+    <% } else { %>
+      <i class='icon-user'></i>
+    <% } %>
+    <span class='hidden-phone'>
+      <%= user.name %>
+    </span>
+    <b class='caret'></b>
+  </a>
+  <ul class='dropdown-menu' role='menu'>
+    <li><a tabindex='-1' href='<%= INTERTWINKLES_BASE_URL %>/profiles/edit'><i class='icon icon-cog'></i> Settings</a></li>
+    <li class='divider'></li>
+    <li><a tabindex='-1' class='sign-out' href='#'>Sign out</a></li>
+  </ul>
+""")
+class intertwinkles.UserMenu extends Backbone.View
+  tagName: 'li'
+  template: user_menu_template
+  events:
+    'click .sign-out': 'signOut'
+
+  initialize: ->
+    intertwinkles.user.on "change", @render
+
+  render: =>
+    @$el.addClass("dropdown")
+    if intertwinkles.is_authenticated()
+      @$el.html(@template(user: intertwinkles.user.toJSON()))
+    else
+      @$el.html("")
+    @setAuthFrameVisibility()
+
+  setAuthFrameVisibility: =>
+    if intertwinkles.is_authenticated()
+      $("#auth_frame").hide()
+    else
+      $("#auth_frame").show()
+
+  signOut: (event) =>
+    event.preventDefault()
+    intertwinkles.request_logout()
+
+#
+# Room users menu
+#
+
+room_users_menu_template = _.template("""
+  <a class='room-menu dropdown-toggle' href='#' data-toggle='dropdown'
+     title='People in this room'>
+    <i class='icon-user'></i><span class='count'></span>
+    <b class='caret'></b>
+  </a>
+  <ul class='dropdown-menu' role='menu'></ul>
+""")
+room_users_menu_item_template = _.template("""
+  <li><a>
+    <% if (icon) { %>
+      <img src='<%= icon.tiny %>' />
+    <% } else { %>
+      <i class='icon icon-user'></i>
+    <% } %>
+    <%= name %>
+  </a></li>
+""")
+
+class intertwinkles.RoomUsersMenu extends Backbone.View
+  tagName: "li"
+  template: room_users_menu_template
+  item_template: room_users_menu_item_template
+
+  initialize: (options={}) ->
+    @room = options.room
+    intertwinkles.socket.on "room_users", @roomList
+    intertwinkles.socket.emit "join", {room: @room}
+    @list = []
+
+  remove: =>
+    intertwinkles.socket.removeListener "room_users", @roomList
+    intertwinkles.socket.emit "leave", {room: @room}
+
+  roomList: (data) =>
+    @list = data.list
+    if data.anon_id?
+      @anon_id = data.anon_id
+    @renderItems()
+    
+  render: =>
+    @$el.addClass("room-users dropdown")
+    @$el.html @template()
+    @renderItems()
+
+  renderItems: =>
+    @$(".count").html(@list.length)
+    @menu = @$(".dropdown-menu")
+    @menu.html("")
+    for item in @list
+      self = item.anon_id == @anon_id
+      context = _.extend {self}, item
+      if self
+        @menu.prepend(@item_template(context))
+      else
+        @menu.append(@item_template(context))
+    @menu.prepend("<li><a>Online now:</a></li>")
+
+#
+# Toolbar
+#
+
+intertwinkles.build_toolbar = (destination, options) ->
+  toolbar = new intertwinkles.Toolbar(options)
+  $(destination).html(toolbar.el)
+  toolbar.render()
+  $(".auth_frame").html(intertwinkles.auth_frame_template())
+  toolbar.setAuthFrameVisibility()
+
+toolbar_template = _.template("""
+  <div class='navbar navbar-top nav'>
+    <div class='navbar-inner'>
+      <div class='container-fluid'>
+        <a class='brand visible-phone' href='/'>
+          I<span class='intertwinkles'>T</span>
+          <span class='appname'><%= appname.substr(0, 1) %></span>
+          <span class='label' style='font-size: 50%;'>B</span>
+        </a>
+        <a class='brand hidden-phone' href='/'>
+          Inter<span class='intertwinkles'>Twinkles</span>:
+          <span class='appname'><%= appname %></span>
+          <span class='label' style='font-size: 50%;'>BETA</span>
+        </a>
+        <ul class='nav pull-right'>
+          <li class='notifications dropdown'></li>
+          <li class='room-users dropdown'></li>
+          <li class='user-menu dropdown'></li>
+          <li class='auth_frame'></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+""")
+
+class intertwinkles.Toolbar extends Backbone.View
+  template: toolbar_template
+  initialize: (options={}) ->
+    @appname = options.appname
+
+  render: =>
+    @$el.html(@template(appname: @appname))
+    @user_menu = new intertwinkles.UserMenu()
+    @$(".user-menu.dropdown").replaceWith(@user_menu.el)
+    @user_menu.render()
+    this
+
+  setAuthFrameVisibility: => @user_menu.setAuthFrameVisibility()
+
+#
+# Footer
+#
+
+footer_template = _.template("""
+<div class='bg'>
+  <img src='/static/img/coop-world.png' alt='Flavor image' />
+</div>
+<div class='container-fluid'>
+  <div class='ramp'></div>
+  <div class='footer-content'>
+    <div class='row-fluid'>
+      <div class='span4 about-links'>
+        <h2>About</h2>
+        <ul>
+          <li><a href='#{INTERTWINKLES_BASE_URL}/about/'>About</a><small>: Free software revolutionary research</small></li>
+          <li><a href='#{INTERTWINKLES_BASE_URL}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
+          <li><a href='#{INTERTWINKLES_BASE_URL}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
+          <li><a href='http://bitbucket.org/yourcelf/intertwinkles/'>Source Code</a><small>: Run your own!</small></li>
+        </ul>
+      </div>
+      <div class='span4 community'>
+        <h2>Community</h2>
+        <ul>
+          <li><a href='http://lists.byconsens.us/mailman/listinfo/design'>Codesign mailing list</a></li>
+          <li><a href='http://project.intertwinkles.org/'>Project tracker</a></li>
+          <li><a href='#{INTERTWINKLES_BASE_URL}/about/related/'>Related projects</a></li>
+        </ul>
+      </div>
+      <div class='span4 sponsors'>
+        <h2>Supported by</h2>
+        <a href='http://civic.mit.edu'>
+          <img alt='The MIT Center for Civic Media' src='/static/img/C4CM.png'>
+        </a>
+        and
+        <a href='http://media.mit.edu/speech'>
+          <img alt='The Speech + Mobility Group' src='/static/img/S_M.png'>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+""")
+
+intertwinkles.build_footer = (destination) ->
+  $(destination).html(footer_template())
+
+
+#
+# User choice widget
+#
+
+user_choice_template = _.template("""
+  <input type='text' name='name' id='id_user' data-provide='typeahead' autocomplete='off' value='<%= name %>' />
+  <span class='icon-holder' style='width: 32px; display: inline-block;'>
+    <% if (icon) { %><img src='<%= icon %>' /><% } %>
+  </span>
+  <input type='hidden' name='user_id' id='id_user_id' value='<%= user_id %>' />
+""")
+
+class intertwinkles.UserChoice extends Backbone.View
+  tagName: "span"
+  template: user_choice_template
+  events:
+    'keydown input': 'keyup'
+
+  initialize: (options={}) ->
+    @model = options.model or {}
+    intertwinkles.user.on "change", @render
+
+  render: =>
+    user_id = @model.get("user_id")
+    if user_id and intertwinkles.users?[user_id]?
+      name = intertwinkles.users[user_id].name
+      icon = intertwinkles.users[user_id].icon
+    else
+      user_id = ""
+      name = @model.get("name") or ""
+      icon = {}
+
+    @$el.html(@template({
+      name: name
+      user_id: user_id
+      icon: if icon.small? then icon.small else ""
+    }))
+
+    @$("#id_user").typeahead {
+      source: @source
+      matcher: @matcher
+      sorter: @sorter
+      updater: @updater
+      highlighter: @highlighter
+    }
+    this
+
+  keyup: (event) =>
+    if @$("#id_user").val() != @model.name
+      @$(".icon-holder").html("")
+      @$("#id_user_id").val("")
+
+  source: (query) ->
+    return ("#{id}" for id,u of intertwinkles.users)
+
+  matcher: (item) ->
+    return intertwinkles.users[parseInt(item)].name.toLowerCase().indexOf(@query.toLowerCase()) != -1
+
+  sorter: (items) ->
+    return _.sortBy items, (a) -> intertwinkles.users[parseInt(a)].name
+
+  updater: (item) =>
+    @$("#id_user_id").val(item)
+    user = intertwinkles.users[parseInt(item)]
+    @model = user
+    if user.icon?
+      @$(".icon-holder").html("<img src='#{user.icon.small}' />")
+    else
+      @$(".icon-holder").html("")
+    return intertwinkles.users[parseInt(item)].name
+
+  highlighter: (item) ->
+    user = intertwinkles.users[parseInt(item)]
+    if user.icon?.small?
+      img = "<img src='#{user.icon.small}' />"
+    else
+      img = "<span style='width: 32px; display: inline-block;'></span>"
+    query = this.query.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&')
+    highlit = user.name.replace new RegExp('(' + query + ')', 'ig'), ($1, match) ->
+      return '<strong>' + match + '</strong>'
+    return "<span>#{img} #{highlit}</span>"
+
+#
+# Group choice widget
+#
+
+group_choice_template = _.template("""
+  <% if (intertwinkles.is_authenticated()) { %>
+    <% if (intertwinkles.groups.length > 0) { %>
+      <select id='id_group'>
+        <option value=''>----</option>
+        <% for (var i = 0; i < intertwinkles.groups.length; i++) { %>
+          <% group = intertwinkles.groups[i]; %>
+          <option value='<%= group.id %>'><%= group.name %></option>
+        <% } %>
+      </select>
+    <% } else { %>
+      You don't have any groups yet.
+    <% } %>
+    <br />
+    (or <a href='<%= INTERTWINKLES_BASE_URL %>/groups/edit'>create a new group</a>)
+  <% } else { %>
+    Sign in to add a group.
+  <% } %>
+""")
+
+class intertwinkles.GroupChoice extends Backbone.View
+  tagName: "span"
+  template: group_choice_template
+  initialize: (options={}) ->
+  render: =>
+    @$el.html(@template())
+    this
+
