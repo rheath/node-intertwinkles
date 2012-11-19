@@ -1,6 +1,6 @@
 # node-intertwinkles
 
-Frontend and ndoejs server library for apps connecting to InterTwinkles servers.
+Frontend and nodejs server library for apps connecting to InterTwinkles servers.
 
 ## Requirements
 
