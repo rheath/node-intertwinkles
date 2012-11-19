@@ -5,21 +5,21 @@ _           = require 'underscore'
 uuid        = require 'node-uuid'
 
 verify = (assertion, config, callback) ->
-  unless config.intertwinkles_base_url?
-    throw "Missing required config parameter: intertwinkles_base_url"
-  unless config.intertwinkles_api_key?
+  unless config.intertwinkles?.api_url?
+    throw "Missing required config parameter: intertwinkles_api_url"
+  unless config.intertwinkles?.api_key?
     throw "Missing required config parameter: intertwinkles_api_key"
 
   # Two-step operation: first, verify the assertion with Mozilla Persona.
   # Second, authorize the user with the InterTwinkles api server.
   #audience = "#{config.host}:#{config.port}"
-  audience = config.intertwinkles_base_url.split("://")[1]
+  audience = config.intertwinkles.api_url.split("://")[1]
   browserid.verify assertion, audience, (err, auth) ->
     if (err)
       callback({'error': err})
     else
       # BrowserID success; now authorize with InterTwinkles.
-      api_url = url.parse(config.intertwinkles_base_url + "/api/groups/")
+      api_url = url.parse(config.intertwinkles.api_url + "/api/groups/")
       if api_url.protocol == "https:"
         httplib = require 'https'
       else if api_url.protocol == "http:"
@@ -29,7 +29,7 @@ verify = (assertion, config, callback) ->
         hostname: api_url.hostname
         port: api_url.port
         path: "#{api_url.pathname}?" + querystring.stringify({
-          api_key: config.intertwinkles_api_key
+          api_key: config.intertwinkles.api_key
           user: auth.email
         })
       }
@@ -143,7 +143,7 @@ attach = (config, app, iorooms) ->
       if isNaN(data.model.icon.id)
         return respond("Invalid icon id")
 
-      api_url = url.parse(config.intertwinkles_base_url + "/api/profiles/")
+      api_url = url.parse(config.intertwinkles_api_url + "/api/profiles/")
       opts = {
         hostname: api_url.hostname
         port: api_url.port
@@ -169,7 +169,7 @@ attach = (config, app, iorooms) ->
             respond("InterTwinkles status #{res.statusCode}")
             console.log(answer)
       post_data = querystring.stringify({
-        api_key: config.intertwinkles_api_key,
+        api_key: config.intertwinkles.api_key,
         user: socket.session.auth.email
         name: data.model.name
         icon_id: data.model.icon.id

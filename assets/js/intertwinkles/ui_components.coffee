@@ -15,7 +15,7 @@ user_menu_template = _.template("""
     <b class='caret'></b>
   </a>
   <ul class='dropdown-menu' role='menu'>
-    <li><a tabindex='-1' href='<%= INTERTWINKLES_BASE_URL %>/profiles/edit'><i class='icon icon-cog'></i> Settings</a></li>
+    <li><a tabindex='-1' href='<%= INTERTWINKLES_APPS.home.url %>/profiles/edit'><i class='icon icon-cog'></i> Settings</a></li>
     <li class='divider'></li>
     <li><a tabindex='-1' class='sign-out' href='#'>Sign out</a></li>
   </ul>
@@ -124,16 +124,36 @@ toolbar_template = _.template("""
   <div class='navbar navbar-top nav'>
     <div class='navbar-inner'>
       <div class='container-fluid'>
-        <a class='brand visible-phone' href='/'>
-          I<span class='intertwinkles'>T</span>
-          <span class='appname'><%= appname.substr(0, 1) %></span>
-          <span class='label' style='font-size: 50%;'>B</span>
-        </a>
-        <a class='brand hidden-phone' href='/'>
-          Inter<span class='intertwinkles'>Twinkles</span>:
-          <span class='appname'><%= appname %></span>
-          <span class='label' style='font-size: 50%;'>BETA</span>
-        </a>
+        <ul class='nav' role='navigation'>
+          <li class='dropdown'>
+            <a class='brand dropdown-toggle' data-toggle='dropdown' href='#'
+               role='button' id='dlogo'>
+              <span class='visible-phone'>
+                I<span class='intertwinkles'>T</span>
+                <span class='appname'><%= appname.substr(0, 1) %></span>
+                <b class='caret'></b>
+                <span class='label' style='font-size: 50%;'>B</span>
+              </span>
+              <span class='hidden-phone'>
+                Inter<span class='intertwinkles'>Twinkles</span>:
+                <span class='appname'><%= appname %></span>
+                <b class='caret'></b>
+                <span class='label' style='font-size: 50%;'>BETA</span>
+              </span>
+            </a>
+            <ul class='dropdown-menu' role='menu' aria-labelledby='dlogo'>
+              <% for (var key in INTERTWINKLES_APPS) { %>
+                <% var app = INTERTWINKLES_APPS[key]; %>
+                <% if (app.name == appname) { continue } %>
+                <li>
+                  <a href='<%= app.url %>'>
+                    <b><%= app.name %></b>: <%= app.about %>
+                  </a>
+                </li>
+              <% } %>
+            </ul>
+          </li>
+        </ul>
         <ul class='nav pull-right'>
           <li class='notifications dropdown'></li>
           <li class='room-users dropdown'></li>
@@ -151,7 +171,7 @@ class intertwinkles.Toolbar extends Backbone.View
     @appname = options.appname
 
   render: =>
-    @$el.html(@template(appname: @appname))
+    @$el.html(@template(appname: INTERTWINKLES_APPS[@appname].name))
     @user_menu = new intertwinkles.UserMenu()
     @$(".user-menu.dropdown").replaceWith(@user_menu.el)
     @user_menu.render()
@@ -174,9 +194,9 @@ footer_template = _.template("""
       <div class='span4 about-links'>
         <h2>About</h2>
         <ul>
-          <li><a href='#{INTERTWINKLES_BASE_URL}/about/'>About</a><small>: Free software revolutionary research</small></li>
-          <li><a href='#{INTERTWINKLES_BASE_URL}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
-          <li><a href='#{INTERTWINKLES_BASE_URL}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/'>About</a><small>: Free software revolutionary research</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
           <li><a href='http://bitbucket.org/yourcelf/intertwinkles/'>Source Code</a><small>: Run your own!</small></li>
         </ul>
       </div>
@@ -185,7 +205,7 @@ footer_template = _.template("""
         <ul>
           <li><a href='http://lists.byconsens.us/mailman/listinfo/design'>Codesign mailing list</a></li>
           <li><a href='http://project.intertwinkles.org/'>Project tracker</a></li>
-          <li><a href='#{INTERTWINKLES_BASE_URL}/about/related/'>Related projects</a></li>
+          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/related/'>Related projects</a></li>
         </ul>
       </div>
       <div class='span4 sponsors'>
@@ -307,7 +327,7 @@ group_choice_template = _.template("""
       You don't have any groups yet.
     <% } %>
     <br />
-    (or <a href='<%= INTERTWINKLES_BASE_URL %>/groups/edit'>create a new group</a>)
+    (or <a href='<%= INTERTWINKLES_APPS.home.url %>/groups/edit'>create a new group</a>)
   <% } else { %>
     Sign in to add a group.
   <% } %>

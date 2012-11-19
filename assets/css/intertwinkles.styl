@@ -62,6 +62,10 @@ cursive-font()
 .help-inline
   color: #999
 
+.nav li a.brand
+  color: #000
+
+
 
 /*
   Basic styles
@@ -90,8 +94,14 @@ a.btn, a.btn:visited
 a.twinkles, a.twinkles:visited
   color: #ddd
 
+h1
+  text-align: center
 h1,h3
   cursive-font()
+
+header
+  // Set to avoid page movement when toolbar loads.
+  min-height: 45px
 
 :-moz-placeholder
   color: #bbb !important

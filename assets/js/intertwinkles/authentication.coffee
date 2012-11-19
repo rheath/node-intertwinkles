@@ -19,7 +19,7 @@ if INITIAL_DATA.groups?
 
 intertwinkles.request_logout = ->
   frame = $("#auth_frame")[0].contentWindow
-  frame.postMessage {action: 'intertwinkles_logout'}, INTERTWINKLES_BASE_URL
+  frame.postMessage {action: 'intertwinkles_logout'}, INTERTWINKLES_API_URL
 
 onlogin = (assertion) ->
   console.log "onlogin"
@@ -71,7 +71,7 @@ onlogout = ->
   , 50
 
 onmessage = (event) ->
-  if event.origin == INTERTWINKLES_BASE_URL
+  if event.origin == INTERTWINKLES_API_URL
     switch event.data.action
       when 'onlogin' then onlogin(event.data.assertion)
       when 'onlogout' then onlogout()
@@ -81,6 +81,6 @@ intertwinkles.is_authenticated = ->
   return intertwinkles.user.get("email")?
 
 intertwinkles.auth_frame_template = _.template("""<iframe id='auth_frame'
-  src='#{INTERTWINKLES_BASE_URL}/api/auth_frame/'
+  src='#{INTERTWINKLES_API_URL}/api/auth_frame/'
   style='border: none; overflow: hidden;' width=97 height=29></iframe>""")
 
