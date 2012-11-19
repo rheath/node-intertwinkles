@@ -60,10 +60,10 @@ onlogout = ->
   reload = intertwinkles.is_authenticated()
   intertwinkles.users = null
   intertwinkles.groups = null
-  intertwinkles.user.clear()
   socket_ready = setInterval ->
     clearInterval(socket_ready)
     intertwinkles.socket.once "logout", ->
+      intertwinkles.user.clear()
       if reload
         flash "info", "Signed out."
         #window.location.pathname = "/"
