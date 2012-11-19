@@ -32,6 +32,7 @@ class intertwinkles.AutoUpdatingDate extends Backbone.View
         str = parseInt(seconds) + "s"
     @$el.attr("title", date.toString("dddd, MMMM dd, yyyy h:mm:ss tt"))
     @$el.html(str)
+    this
 
 intertwinkles.inline_user = (user_id, name) ->
   user = intertwinkles.users?[user_id]

@@ -252,22 +252,23 @@ intertwinkles.sharing_summary = (sharing) ->
       short_title = "Private to #{group.name}"
       icon_class = "icon-lock"
 
-    group_list = _.map(group.members, (m) ->
-      intertwinkles.users[m.user_id].email
-    )
-    perms.push("Members of <acronym title='#{group_list.join(", ")}'>#{group.name}</acronym> can view and edit#{if is_public then " beyond that date" else ""}.")
-    if sharing.extra_editors?.length > 0
-      other_editors = _.difference(sharing.extra_editors, group_list)
-    else
-      other_editors = []
-    if sharing.extra_viewers?.length > 0
-      other_viewers = _.difference(sharing.extra_viewers, group_list, other_editors)
-    else
-      other_viewers = []
-    if other_editors.length > 0
-      perms.push("<br />The following people can also edit: <i>#{other_editors.join(", ")}</i>.")
-    if other_viewers.length > 0
-      perms.push("<br />The following people can also view: <i>#{other_viewers.join(", ")}</i>.")
+    if group?
+      group_list = _.map(group.members, (m) ->
+        intertwinkles.users[m.user_id].email
+      )
+      perms.push("Members of <acronym title='#{group_list.join(", ")}'>#{group.name}</acronym> can view and edit#{if is_public then " beyond that date" else ""}.")
+      if sharing.extra_editors?.length > 0
+        other_editors = _.difference(sharing.extra_editors, group_list)
+      else
+        other_editors = []
+      if sharing.extra_viewers?.length > 0
+        other_viewers = _.difference(sharing.extra_viewers, group_list, other_editors)
+      else
+        other_viewers = []
+      if other_editors.length > 0
+        perms.push("<br />The following people can also edit: <i>#{other_editors.join(", ")}</i>.")
+      if other_viewers.length > 0
+        perms.push("<br />The following people can also view: <i>#{other_viewers.join(", ")}</i>.")
     if not is_public
       perms.push("All others, and people who aren't signed in, cannot view or edit.")
   perms.push("<br />The link will #{if sharing.advertise then "" else "not"} be listed publicly.")
@@ -345,7 +346,6 @@ class intertwinkles.SharingSettingsButton extends Backbone.View
       @model.get("sharing")
     ))
     @$el.html(@template(icon_class: summary.icon_class))
-    #TODO: Change icon for different sharing settings.
     popover_content = summary.content
     if intertwinkles.is_authenticated()
       popover_content += "<br /><i>Click to change settings.</i>"
@@ -354,7 +354,7 @@ class intertwinkles.SharingSettingsButton extends Backbone.View
       popover_content += "<br /><i>Sign in to change sharing settings.</i>"
         
     @$(".open-sharing").popover({
-        placement: "left"
+        placement: "bottom"
         html: true
         title: summary.title
         content: popover_content

@@ -4,6 +4,10 @@ querystring = require 'querystring'
 _           = require 'underscore'
 uuid        = require 'node-uuid'
 
+#
+# Authorize a request originating from the browser with Mozilla persona and the
+# InterTwinkles api server.
+#
 verify = (assertion, config, callback) ->
   unless config.intertwinkles?.api_url?
     throw "Missing required config parameter: intertwinkles_api_url"
@@ -232,6 +236,7 @@ attach = (config, app, iorooms) ->
 #  association implies the public can view and edit (e.g. etherpad style;
 #  relies on secret URL for security).
 #
+
 can_view = (session, model) ->
   # Editing implies viewing.
   return true if can_edit(session, model)
@@ -262,4 +267,92 @@ can_edit = (session, model) ->
   )
   return false
 
-module.exports = { attach, verify, can_view, can_edit }
+# Return a copy of the sharing properties of this model which do not contain
+# email addresses or any other details the given user session shouldn't see. 
+# The main rub: sharing settings might specify a list of email addresses of
+# people who can edit or view. But a doc might also be made public for a period
+# of time.  If it is public, and we aren't in the group or in the list of
+# approved editors/viewers, hide email addresses.
+clean_sharing = (session, model) ->
+  return {} if not model.sharing?
+  cleaned = {
+    group_id: model.sharing.group_id
+    public_view_until: model.sharing.public_view_until
+    public_edit_until: model.sharing.public_edit_until
+    advertise: model.sharing.advertise
+  }
+  # If we aren't signed in (or there are no specified 'extra_viewers' or
+  # 'extra_editors' to show), don't return any extra viewers or extra editors.
+  return cleaned if not session?.auth?.email? or not (model.sharing.extra_viewers? or model.sharing.extra_editors?)
+  # If we're in the group, or in the list of approved viewers/editors, show the
+  # addresses.
+  email = session.auth.email
+  group = _.find(session.groups.groups, (g) -> "" + g.id == "" + model.sharing.group_id)
+  if (group or
+      model.sharing.extra_editors?.indexOf(email) != -1 or
+      model.sharing.extra_viewers?.indexOf(email) != -1)
+    cleaned.extra_editors = (e for e in model.sharing.extra_editors or [])
+    cleaned.extra_viewers = (e for e in model.sharing.extra_viewers or [])
+  return cleaned
+
+
+# List all the documents in `schema` (a Mongo/Mongoose collection) which are
+# currently public.  Use for providing a dashboard listing of documents.
+list_public_documents = (schema, session, cb, condition={}, sort="modified", skip=0, limit=20, clean=true) ->
+  # Find the public documents.
+  schema.find(_.extend({
+    "sharing.advertise": true
+    $or: [
+      { "sharing.group_id": null },
+      { "sharing.public_edit_until": { $gt: new Date() }}
+      { "sharing.public_view_until": { $gt: new Date() }}
+    ]
+  }, condition or {})).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
+    return cb(err) if err?
+    if clean
+      for doc in docs
+        doc.sharing = clean_sharing(session, doc)
+    cb(null, docs)
+
+# List all the documents in `schema` (a Mongo/Mongoose collection) which belong
+# to the given session.  Use for providing a dashboard listing of documents.
+list_group_documents = (schema, session, cb, condition={}, sort="modified", skip=0, limit=20, clean=true) ->
+  # Find the group documents
+  if not session?.auth?.email?
+    cb(null, []) # Not signed in; we have no group docs.
+  else
+    schema.find(_.extend({
+      $or: [
+        {"sharing.group_id": { $in : (g.id for g in session.groups?.groups or []) }}
+        {"sharing.extra_editors": session.auth.email}
+        {"sharing.extra_viewers": session.auth.email}
+      ]
+    })).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
+      return cb(err) if err?
+      if clean
+        for doc in docs
+          doc.sharing = clean_sharing(session, doc)
+      cb(null, docs)
+
+# List both public and group documents, in an object {public: [docs], group: [docs]}
+list_accessible_documents = (schema, session, cb, condition={}, sort="modified", skip=0, limit=20, clean=true) ->
+
+  docs = {}
+
+  respond = (err, doclist, key) ->
+    return cb(err) if err
+    docs[key] = doclist
+    if docs.group? and docs.public?
+      # Exclude docs present in the group list from the public list.
+      # group_ids = (d.id for d in docs.group)
+      # public_ids = (d.id for d in docs.public)
+      # keep_public = _.difference(public_ids, group_ids)
+      # docs.public = _.filter(docs.public, (d) -> _.contains(keep_public, d.id))
+      cb(null, docs)
+
+  group_cb = (err, docs) -> respond(err, docs, "group")
+  public_cb = (err, docs) -> respond(err, docs, "public")
+  list_group_documents(schema, session, group_cb, condition, sort, skip, limit, clean)
+  list_public_documents(schema, session, public_cb, condition, sort, skip, limit, clean)
+
+module.exports = { attach, verify, can_view, can_edit, clean_sharing, list_public_documents, list_group_documents, list_accessible_documents }

@@ -52,7 +52,7 @@ class intertwinkles.UserMenu extends Backbone.View
 #
 
 room_users_menu_template = _.template("""
-  <a class='room-menu dropdown-toggle' href='#' data-toggle='dropdown'
+  <a class='room-menu dropdown-toggle btn' href='#' data-toggle='dropdown'
      title='People in this room'>
     <i class='icon-user'></i><span class='count'></span>
     <b class='caret'></b>
@@ -130,22 +130,21 @@ toolbar_template = _.template("""
                role='button' id='dlogo'>
               <span class='visible-phone'>
                 I<span class='intertwinkles'>T</span>
-                <span class='appname'><%= appname.substr(0, 1) %></span>
+                <span class='appname'><%= apps[0].name.substr(0, 1) %></span>
                 <b class='caret'></b>
                 <span class='label' style='font-size: 50%;'>B</span>
               </span>
               <span class='hidden-phone'>
                 Inter<span class='intertwinkles'>Twinkles</span>:
-                <span class='appname'><%= appname %></span>
+                <span class='appname'><%= apps[0].name %></span>
                 <b class='caret'></b>
                 <span class='label' style='font-size: 50%;'>BETA</span>
               </span>
             </a>
-            <ul class='dropdown-menu' role='menu' aria-labelledby='dlogo'>
-              <% for (var key in INTERTWINKLES_APPS) { %>
-                <% var app = INTERTWINKLES_APPS[key]; %>
-                <% if (app.name == appname) { continue } %>
-                <li>
+            <ul class='dropdown-menu appmenu' role='menu' aria-labelledby='dlogo'>
+              <% for (var i = 0; i < apps.length; i++) { %>
+                <% var app = apps[i]; %>
+                <li class='<%= i == 0 ? "thisapp" : "" %>'>
                   <a href='<%= app.url %>'>
                     <b><%= app.name %></b>: <%= app.about %>
                   </a>
@@ -156,7 +155,6 @@ toolbar_template = _.template("""
         </ul>
         <ul class='nav pull-right'>
           <li class='notifications dropdown'></li>
-          <li class='room-users dropdown'></li>
           <li class='user-menu dropdown'></li>
           <li class='auth_frame'></li>
         </ul>
@@ -168,10 +166,19 @@ toolbar_template = _.template("""
 class intertwinkles.Toolbar extends Backbone.View
   template: toolbar_template
   initialize: (options={}) ->
-    @appname = options.appname
+    @applabel = options.applabel
 
   render: =>
-    @$el.html(@template(appname: INTERTWINKLES_APPS[@appname].name))
+    apps = []
+    thisapp = null
+    for label, app of INTERTWINKLES_APPS
+      if label == @applabel
+        apps.unshift(app)
+      else
+        apps.push(app)
+
+    @$el.html @template({apps: apps})
+
     @user_menu = new intertwinkles.UserMenu()
     @$(".user-menu.dropdown").replaceWith(@user_menu.el)
     @user_menu.render()
@@ -237,6 +244,7 @@ user_choice_template = _.template("""
     <% if (icon) { %><img src='<%= icon %>' /><% } %>
   </span>
   <input type='hidden' name='user_id' id='id_user_id' value='<%= user_id %>' />
+  <div class='form-hint unknown'></div>
 """)
 
 class intertwinkles.UserChoice extends Backbone.View
@@ -278,6 +286,7 @@ class intertwinkles.UserChoice extends Backbone.View
     if @$("#id_user").val() != @model.name
       @$(".icon-holder").html("")
       @$("#id_user_id").val("")
+      @$(".unknown").html("Not a known group member.")
 
   source: (query) ->
     return ("#{id}" for id,u of intertwinkles.users)
@@ -290,6 +299,7 @@ class intertwinkles.UserChoice extends Backbone.View
 
   updater: (item) =>
     @$("#id_user_id").val(item)
+    @$(".unknown").html("")
     user = intertwinkles.users[parseInt(item)]
     @model = user
     if user.icon?
