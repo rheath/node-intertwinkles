@@ -280,6 +280,7 @@ intertwinkles.sharing_summary = (sharing) ->
 
 intertwinkles.normalize_sharing = (sharing) ->
   # Normalize sharing
+  return {} if not sharing?
   now = new Date()
   if sharing.public_edit_until?
     # Remove stale public edit until
