@@ -14,6 +14,10 @@ class intertwinkles.AutoUpdatingDate extends Backbone.View
     @interval = setInterval @render, 60000
     @$el.addClass("date")
 
+  remove: =>
+    clearInterval(@interval)
+    super()
+
   render: =>
     now = new Date()
     date = @date
