@@ -29,6 +29,10 @@ class intertwinkles.UserMenu extends Backbone.View
   initialize: ->
     intertwinkles.user.on "change", @render
 
+  remove: =>
+    intertwinkles.user.off "change", @render
+    super()
+
   render: =>
     @$el.addClass("dropdown")
     if intertwinkles.is_authenticated()
@@ -84,6 +88,7 @@ class intertwinkles.RoomUsersMenu extends Backbone.View
   remove: =>
     intertwinkles.socket.removeListener "room_users", @roomList
     intertwinkles.socket.emit "leave", {room: @room}
+    super()
 
   roomList: (data) =>
     @list = data.list
@@ -167,6 +172,10 @@ class intertwinkles.Toolbar extends Backbone.View
   template: toolbar_template
   initialize: (options={}) ->
     @applabel = options.applabel
+
+  remove: =>
+    @user_menu?.remove()
+    super()
 
   render: =>
     apps = []
@@ -256,6 +265,10 @@ class intertwinkles.UserChoice extends Backbone.View
   initialize: (options={}) ->
     @model = options.model or {}
     intertwinkles.user.on "change", @render
+
+  remove: =>
+    intertwinkles.user.off "change", @render
+    super()
 
   render: =>
     user_id = @model.get("user_id")

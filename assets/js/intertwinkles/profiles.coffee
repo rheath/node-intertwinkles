@@ -48,6 +48,11 @@ class intertwinkles.EditNewProfile extends Backbone.View
   template: edit_new_profile_template
   events:
     'click input[type=submit]': 'saveProfile'
+
+  remove: =>
+    @chooser?.remove()
+    super()
+
   render: =>
     name = intertwinkles.user.get("name")
     icon = intertwinkles.user.get("icon")
@@ -61,6 +66,8 @@ class intertwinkles.EditNewProfile extends Backbone.View
     chooser = new intertwinkles.IconChooser(chosen: icon_id)
     @$(".image-chooser").html(chooser.el)
     chooser.render()
+    @chooser = chooser
+
     @$(".modal").modal("show")
     name_color = =>
       @$(".color-label").html(intertwinkles.match_color(@$(".color").val()))

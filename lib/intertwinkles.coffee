@@ -236,15 +236,18 @@ attach = (config, app, iorooms) ->
 #  association implies the public can view and edit (e.g. etherpad style;
 #  relies on secret URL for security).
 #
+#  If a document is owned (e.g. has a group, or explicit extra_editors), only
+#  owners (group members or explicit editors) can change sharing options.
+#
 
 can_view = (session, model) ->
   # Editing implies viewing.
   return true if can_edit(session, model)
   # Is this public for viewing but not editing?
-  return true if model.sharing.public_view_until > new Date()
+  return true if model.sharing?.public_view_until > new Date()
   # Are we specifically listed as an extra viewer?
   return true if (
-    model.sharing.extra_viewers? and
+    model.sharing?.extra_viewers? and
     session.auth?.email? and
     model.sharing.extra_viewers.indexOf(session.auth.email) != -1
   )
@@ -252,19 +255,35 @@ can_view = (session, model) ->
 
 can_edit = (session, model) ->
   # No group? Everyone can edit.
-  return true if not model.sharing.group_id?
+  return true if not model.sharing?.group_id?
   # If it is associated with a group, it might be marked public.
-  return true if model.sharing.public_edit_until > new Date()
+  return true if model.sharing?.public_edit_until > new Date()
   # Otherwise, we have to be signed in.
   return false if not session.auth?.email?
   # Or we could be in a group that owns this.
-  return true if _.find(session.groups.groups, (g) -> "" + g.id == "" + model.sharing.group_id)
+  return true if _.find(session.groups.groups, (g) -> "" + g.id == "" + model.sharing?.group_id)
   # Or marked as specifically allowed to edit
   return true if (
-    model.sharing.extra_editors? and
+    model.sharing?.extra_editors? and
     session.auth?.email? and
     model.sharing.extra_editors.indexOf(session.auth.email) != -1
   )
+  return false
+
+can_change_sharing = (session, model) ->
+  # Doesn't belong to a group, go ahead.
+  return true if not model.sharing?.group_id? and (
+    (model.sharing?.extra_editors or []).length == 0
+  )
+  # Doc belongs to a group.  Must be logged in.
+  return false unless session?.auth?.email
+  # All good if you belong to the group.
+  return true if _.find(
+    session?.groups?.groups or [],
+    (g) -> "" + g.id == "" + model.sharing.group_id
+  )
+  # All good if you are an explicit extra editor
+  return true if _.find(model.sharing?.extra_editors or [], session.auth.email)
   return false
 
 # Return a copy of the sharing properties of this model which do not contain
@@ -355,4 +374,4 @@ list_accessible_documents = (schema, session, cb, condition={}, sort="modified",
   list_group_documents(schema, session, group_cb, condition, sort, skip, limit, clean)
   list_public_documents(schema, session, public_cb, condition, sort, skip, limit, clean)
 
-module.exports = { attach, verify, can_view, can_edit, clean_sharing, list_public_documents, list_group_documents, list_accessible_documents }
+module.exports = { attach, verify, can_view, can_edit, can_change_sharing, clean_sharing, list_public_documents, list_group_documents, list_accessible_documents }

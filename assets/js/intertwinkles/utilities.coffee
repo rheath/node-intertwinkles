@@ -11,14 +11,14 @@ class intertwinkles.AutoUpdatingDate extends Backbone.View
       @date = datetime
     else
       @date = new Date(datetime)
-    @interval = setInterval @render, 60000
     @$el.addClass("date")
 
   remove: =>
-    clearInterval(@interval)
+    clearTimeout(@timeout) if @timeout?
     super()
 
   render: =>
+    clearTimeout(@timeout) if @timeout?
     now = new Date()
     date = @date
     if now.getFullYear() != date.getFullYear()
@@ -30,10 +30,13 @@ class intertwinkles.AutoUpdatingDate extends Backbone.View
       seconds = diff / 1000
       if seconds > (60 * 60)
         str = parseInt(seconds / 60 / 60) + "h"
+        @timeout = setTimeout @render, 60000 * 15
       else if seconds > 60
         str = parseInt(seconds / 60) + "m"
+        @timeout = setTimeout @render, 60000
       else
         str = parseInt(seconds) + "s"
+        @timeout = setTimeout @render, 15000
     @$el.attr("title", date.toString("dddd, MMMM dd, yyyy h:mm:ss tt"))
     @$el.html(str)
     this
