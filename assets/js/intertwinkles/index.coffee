@@ -1,5 +1,6 @@
 #= require ../vendor/jquery.js
 #= require ../vendor/jquery-ui-1.9.1.custom.js
+#= require ../vendor/jquerypp.custom.js
 #= require ../vendor/underscore.js
 #= require ../vendor/underscore-autoescape.js
 #= require ../vendor/backbone.js

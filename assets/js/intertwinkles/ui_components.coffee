@@ -305,24 +305,24 @@ class intertwinkles.UserChoice extends Backbone.View
     return ("#{id}" for id,u of intertwinkles.users)
 
   matcher: (item) ->
-    return intertwinkles.users[parseInt(item)].name.toLowerCase().indexOf(@query.toLowerCase()) != -1
+    return intertwinkles.users[item].name.toLowerCase().indexOf(@query.toLowerCase()) != -1
 
   sorter: (items) ->
-    return _.sortBy items, (a) -> intertwinkles.users[parseInt(a)].name
+    return _.sortBy items, (a) -> intertwinkles.users[a].name
 
   updater: (item) =>
     @$("#id_user_id").val(item)
     @$(".unknown").html("")
-    user = intertwinkles.users[parseInt(item)]
+    user = intertwinkles.users[item]
     @model = user
     if user.icon?
       @$(".icon-holder").html("<img src='#{user.icon.small}' />")
     else
       @$(".icon-holder").html("")
-    return intertwinkles.users[parseInt(item)].name
+    return intertwinkles.users[item].name
 
   highlighter: (item) ->
-    user = intertwinkles.users[parseInt(item)]
+    user = intertwinkles.users[item]
     if user.icon?.small?
       img = "<img src='#{user.icon.small}' />"
     else
@@ -338,11 +338,11 @@ class intertwinkles.UserChoice extends Backbone.View
 
 group_choice_template = _.template("""
   <% if (intertwinkles.is_authenticated()) { %>
-    <% if (intertwinkles.groups.length > 0) { %>
+    <% if (_.keys(intertwinkles.groups).length > 0) { %>
       <select id='id_group'>
         <option value=''>----</option>
-        <% for (var i = 0; i < intertwinkles.groups.length; i++) { %>
-          <% group = intertwinkles.groups[i]; %>
+        <% for (var key in intertwinkles.groups) { %>
+          <% group = intertwinkles.groups[key]; %>
           <option value='<%= group.id %>'><%= group.name %></option>
         <% } %>
       </select>
@@ -350,7 +350,7 @@ group_choice_template = _.template("""
       You don't have any groups yet.
     <% } %>
     <br />
-    (or <a href='<%= INTERTWINKLES_APPS.home.url %>/groups/edit'>create a new group</a>)
+    (or <a href='<%= INTERTWINKLES_APPS.home.url %>/groups/new/'>create a new group</a>)
   <% } else { %>
     Sign in to add a group.
   <% } %>

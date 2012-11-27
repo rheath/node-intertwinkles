@@ -10,7 +10,7 @@ sharing_control_template = _.template("""
       <hr>
     </div>
 
-    <span class='public-group-hint'>Add a group to change sharing options.</span>
+    <span class='public-group-hint'>Add a group to change sharing options.</span><br />
 
     <div class='all-options'>
       <a href='#' class='change-sharing-options'>Change sharing options</a>
@@ -160,7 +160,7 @@ class intertwinkles.SharingFormControl extends Backbone.View
     @$("#id_group").on "change", =>
       @sharing.group_id = @$("#id_group").val()
       if @sharing.group_id
-        @sharing.group_id = parseInt(@sharing.group_id)
+        @sharing.group_id = @sharing.group_id
         @$("select[name=public_until]").attr("disabled", false)
         @$("select[name=public_edit_or_view]").attr("disabled", false)
         @$("input[name=advertise]").attr("disabled", false)
@@ -260,11 +260,9 @@ intertwinkles.sharing_summary = (sharing) ->
   else
     now = new Date()
     is_public = false
-    group = _.find intertwinkles.groups, (g) -> "" + g.id == "" + sharing.group_id
+    group = intertwinkles.groups[sharing.group_id]
     if group?
-      group_list = _.map(group.members, (m) ->
-        intertwinkles.users[m.user_id].email
-      )
+      group_list = _.map(group.members, (m) -> intertwinkles.users[m.user].email)
       perms.push("Owned by <acronym title='#{group_list.join(", ")}'>#{group.name}</acronym>.")
     if sharing.public_edit_until?
       if sharing.public_edit_until.getTime() - now.getTime() > 1000 * 60 * 60 * 24 * 365 * 100

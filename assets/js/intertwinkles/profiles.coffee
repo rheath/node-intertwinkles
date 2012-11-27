@@ -147,13 +147,13 @@ icon_chooser_template = _.template("""
 
 class intertwinkles.IconChooser extends Backbone.View
   template: icon_chooser_template
-  chooser_image: "/static/js/intertwinkles_profile_icons.png"
+  chooser_image: "/static/js/intertwinkles_icon_chooser.png"
   initialize: (options={}) ->
     @chosen = options.chosen
 
   render: =>
     @$el.html(@template(chosen: @chosen or ""))
-    $.get "/js/intertwinkles_icon_chooser.json", (data) =>
+    $.get "/static/js/intertwinkles_icon_chooser.json", (data) =>
       icon_holder = @$(".profile-image-chooser")
       icon_holder.html("")
       _.each data, (def, i) =>
@@ -171,3 +171,80 @@ class intertwinkles.IconChooser extends Backbone.View
         icon_holder.append(icon)
       icon_holder.append("<div style='clear: both;'></div>")
     jscolor.bind()
+
+icon_chooser_lite_template = _.template("""
+  <input type='hidden' id='id_icon' name='icon' value='<%= chosen %>' />
+  <input type='text' id='id_icon_chooser' value='' disabled style='float: left;'/>
+  <span class='chosen-image' style='float: left;'></span>
+""")
+
+class intertwinkles.IconChooserLite extends Backbone.View
+  template: icon_chooser_lite_template
+  chooser_data:  "/static/js/intertwinkles_icon_chooser.json"
+  chooser_image: "/static/js/intertwinkles_icon_chooser.png"
+  events:
+    'keydown input': 'keyup'
+
+  initialize: (options={}) ->
+    @chosen = options.chosen
+
+  render: =>
+    @$el.html(@template(chosen: @chosen))
+    $.get @chooser_data, (data) =>
+      intertwinkles.icon_defs = {}
+      for entry in data
+        intertwinkles.icon_defs[entry.pk + ""] = entry.name
+      @$("#id_icon_chooser").attr("disabled", false)
+      @$("#id_icon_chooser").typeahead({
+        source: @source
+        matcher: @matcher
+        sorter: @sorter
+        updater: @updater
+        highlighter: @highlighter
+      })
+
+      @updater(@chosen + "") if @chosen?
+
+  keyup: (event) =>
+    console.log(event)
+    if @$("#id_icon_chooser").val() != intertwinkles.icon_defs[@chosen]
+      @$(".chosen-image").html("")
+      @$("#id_icon").val("")
+
+  source: (query) ->
+    return ("#{pk}" for pk,name of intertwinkles.icon_defs)
+
+  matcher: (item) ->
+    return intertwinkles.icon_defs[item].toLowerCase().indexOf(@query.toLowerCase()) != -1
+
+  sorter: (items) ->
+    return _.sortBy items, (a) -> intertwinkles.icon_defs[a]
+
+  updater: (item) =>
+    @$("#id_icon").val(item)
+    @$(".chosen-image").html(@build_icon(item))
+    @$("#id_icon_chooser").val(intertwinkles.icon_defs[item])
+    return intertwinkles.icon_defs[item]
+
+  highlighter: (item) ->
+    name = intertwinkles.icon_defs[item]
+    query = this.query.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&')
+    highlit = name.replace new RegExp('(' + query + ')', 'ig'), ($1, match) ->
+      return '<strong>' + match + '</strong>'
+    res = $("<div></div>")
+    res.append(intertwinkles.IconChooserLite.prototype.build_icon(item))
+    res.append("&nbsp;")
+    res.append(highlit)
+    return res
+
+  build_icon: (pk) =>
+    name = intertwinkles.icon_defs[pk]
+    return $("<div></div>").html(name).css({
+      "font-size": "0"
+      "vertical-align": "middle"
+      "display": "inline-block"
+      "width": "32px"
+      "height": "32px"
+      "background-image": "url('#{@chooser_image}')"
+      "background-position": "#{-32 * (parseInt(pk) - 1)}px 0px"
+    })

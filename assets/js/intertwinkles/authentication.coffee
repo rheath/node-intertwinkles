@@ -23,6 +23,11 @@ intertwinkles.request_logout = ->
 
 onlogin = (assertion) ->
   console.log "onlogin"
+  if window.INTERTWINKLES_AUTH_LOGOUT?
+    return intertwinkles.request_logout()
+  finish = ->
+    if window.INTERTWINKLES_AUTH_REDIRECT?
+      window.location.href = INTERTWINKLES_AUTH_REDIRECT
   handle = (data) ->
     old_user = intertwinkles.user?.get("email")
     if not data.error? and data.email
@@ -41,34 +46,36 @@ onlogin = (assertion) ->
         profile_editor = new intertwinkles.EditNewProfile()
         $("body").append(profile_editor.el)
         profile_editor.render()
-        profile_editor.on "done", -> profile_editor.remove()
+        profile_editor.on "done", ->
+          profile_editor.remove()
+          finish()
       else if old_user != intertwinkles.user.get("email")
         flash "info", "Welcome, #{intertwinkles.user.get("name")}"
+        finish()
 
     if data.error?
       intertwinkles.request_logout()
       flash "error", data.error or "Error signing in."
 
   if intertwinkles.socket?
-    socket_ready = setInterval ->
-      clearInterval(socket_ready)
-      intertwinkles.socket.once "login", handle
-      intertwinkles.socket.emit "verify", {callback: "login", assertion: assertion}
-    , 50
+    intertwinkles.socket.once "login", handle
+    intertwinkles.socket.emit "verify", {callback: "login", assertion: assertion}
+  else
+    alert("Error: socket missing")
 
 onlogout = ->
-  reload = intertwinkles.is_authenticated()
   intertwinkles.users = null
   intertwinkles.groups = null
-  socket_ready = setInterval ->
-    clearInterval(socket_ready)
+  if intertwinkles.socket
     intertwinkles.socket.once "logout", ->
+      reload = intertwinkles.is_authenticated()
       intertwinkles.user.clear()
-      if reload
+      if reload or window.INTERTWINKLES_AUTH_LOGOUT
         flash "info", "Signed out."
-        #window.location.pathname = "/"
+        window.location.pathname = "/"
     intertwinkles.socket.emit "logout", {callback: "logout"}
-  , 50
+  else
+    alert("Socket connection failed")
 
 onmessage = (event) ->
   if event.origin == INTERTWINKLES_API_URL
@@ -77,10 +84,9 @@ onmessage = (event) ->
       when 'onlogout' then onlogout()
 window.addEventListener('message', onmessage, false)
 
-intertwinkles.is_authenticated = ->
-  return intertwinkles.user.get("email")?
+intertwinkles.is_authenticated = -> return intertwinkles.user.get("email")?
 
 intertwinkles.auth_frame_template = _.template("""<iframe id='auth_frame'
-  src='#{INTERTWINKLES_API_URL}/api/auth_frame/'
+  src='#{INTERTWINKLES_API_URL}/static/auth_frame.html'
   style='border: none; overflow: hidden;' width=97 height=29></iframe>""")
 
