@@ -22,7 +22,7 @@ get_json = (get_url, query, callback) ->
     res.on 'data', (chunk) -> data += chunk
     res.on 'end', ->
       if res.statusCode != 200
-        return callback {error: "Status #{res.statusCode}"}
+        return callback {error: "Intertwinkles status #{res.statusCode}"}
       try
         json = JSON.parse(data)
       catch e
@@ -49,7 +49,7 @@ post_data = (post_url, data, callback) ->
     answer = ''
     res.on 'data', (chunk) -> answer += chunk
     res.on 'end', ->
-      if res.statusCode = 200
+      if res.statusCode == 200
         try
           json = JSON.parse(answer)
         catch e
@@ -59,10 +59,10 @@ post_data = (post_url, data, callback) ->
         callback(null, json)
       else
         callback({error: "Intertwinkles status #{res.statusCode}"})
-  post_data = querystring.stringify(data)
-  req.setHeader("Content-Type", "application/x-www-urlencoded")
-  req.setHeader("Content-Length", post_data.length)
-  req.write(post_data)
+  data = querystring.stringify(data)
+  req.setHeader("Content-Type", "application/x-www-form-urlencoded")
+  req.setHeader("Content-Length", data.length)
+  req.write(data)
   req.end()
 
 #
@@ -401,14 +401,27 @@ mongo.list_accessible_documents = (schema, session, cb, condition={}, sort="modi
 
 events = {}
 
-events.get_events_for = (query, callback) ->
-  events_api_url = config.intertwinkles_api_url + "/api/events/"
-  get_json(events_api_url, query, callback)
+events.get_events_for = (user, query, config, callback) ->
+  events_api_url = config.intertwinkles.api_url + "/api/events/"
+  get_data = {
+    event: query,
+    user: user,
+    api_key: config.intertwinkles.api_key
+  }
+  get_data.event = JSON.stringify(get_data.event)
+  get_json(events_api_url, get_data, callback)
 
-events.post_events_for = (query, callback) ->
-  query.data = JSON.stringify(query.data) if query.data?
-  events_api_url = config.intertwinkles_api_url + "/api/events/"
-  post_data(events_api_url, query, callback)
+events.post_event_for = (user, query, config, callback) ->
+  events_api_url = config.intertwinkles.api_url + "/api/events/"
+  post = {
+    event: query
+    user: user
+    api_key: config.intertwinkles.api_key
+  }
+  post.event.user = user #XXX: Is this a good idea?
+  # Make this flat.
+  post.event = JSON.stringify(post.event)
+  post_data(events_api_url, post, callback)
 
 #
 # Utilities
