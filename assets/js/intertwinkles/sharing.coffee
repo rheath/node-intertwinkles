@@ -260,7 +260,7 @@ intertwinkles.sharing_summary = (sharing) ->
   else
     now = new Date()
     is_public = false
-    group = intertwinkles.groups[sharing.group_id]
+    group = intertwinkles.groups?[sharing.group_id]
     if group?
       group_list = _.map(group.members, (m) -> intertwinkles.users[m.user].email)
       perms.push("Owned by <acronym title='#{group_list.join(", ")}'>#{group.name}</acronym>.")

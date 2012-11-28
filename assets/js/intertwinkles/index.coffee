@@ -27,6 +27,7 @@
 #= require ./profiles
 #= require ./ui_components
 #= require ./sharing
+#= require ./events
 #= require ./utilities
 
 $(document).ready ->

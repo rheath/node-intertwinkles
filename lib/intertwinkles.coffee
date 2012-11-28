@@ -49,6 +49,7 @@ post_data = (post_url, data, callback) ->
     answer = ''
     res.on 'data', (chunk) -> answer += chunk
     res.on 'end', ->
+      return unless callback?
       if res.statusCode == 200
         try
           json = JSON.parse(answer)
@@ -165,6 +166,16 @@ attach = (config, app, iorooms) ->
         socket.session.groups?.users[profile.id] = profile
         respond(null, model: profile)
 
+    iorooms.onChannel "get_events", (socket, data) ->
+      unless (data.query? and data.callback? and
+          auth.is_authenticated(socket.session))
+        return socket.emit "error", {error: "Invalid events query"}
+
+      events.get_events_for(
+        socket.session.auth.email, data.query, config, (err, results) ->
+          socket.emit data.callback, {events: results.events}
+      )
+
     # Join room
     iorooms.on "join", (data) ->
       join = (err) ->
@@ -228,8 +239,6 @@ auth.clear_auth_session = (session) ->
   delete session.groups
 
 auth.is_authenticated = (session) -> return session.auth?.email?
-
-
 
 #
 # Permissions. Expects 'session' to have auth and groups params as populated by
@@ -411,17 +420,34 @@ events.get_events_for = (user, query, config, callback) ->
   get_data.event = JSON.stringify(get_data.event)
   get_json(events_api_url, get_data, callback)
 
-events.post_event_for = (user, query, config, callback) ->
+events.timeout_queue = {}
+events.post_event_for = (user, query, config, callback, timeout) ->
+  # If we are passed a timeout argument, store the results of the event posting
+  # for the duration of that time, and return that data while it's stored.
+  # The event is considered the same if it shares the same properties with the
+  # exception of "data" and "date".
+  key = null
+  if timeout?
+    key = [query.application, query.entity, query.type, query.user, query.group].join(":")
+    if events.timeout_queue[key]
+      return callback?(null, events.timeout_queue[key])
+
+  # Prepare the event data.
   events_api_url = config.intertwinkles.api_url + "/api/events/"
   post = {
     event: query
     user: user
     api_key: config.intertwinkles.api_key
   }
-  post.event.user = user #XXX: Is this a good idea?
-  # Make this flat.
   post.event = JSON.stringify(post.event)
-  post_data(events_api_url, post, callback)
+
+  # Post the event, and respond.
+  post_data(events_api_url, post, (err, data) ->
+    if timeout? and not err?
+      events.timeout_queue[key] = data
+      setTimeout (-> delete events.timeout_queue[key]), timeout
+    callback?(err, data)
+  )
 
 #
 # Utilities
