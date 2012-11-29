@@ -28,6 +28,7 @@ onlogin = (assertion) ->
   finish = ->
     if window.INTERTWINKLES_AUTH_REDIRECT?
       window.location.href = INTERTWINKLES_AUTH_REDIRECT
+
   handle = (data) ->
     old_user = intertwinkles.user?.get("email")
     if not data.error? and data.email
@@ -39,10 +40,7 @@ onlogin = (assertion) ->
       else
         intertwinkles.user.clear()
     
-      if _.contains data.messages, "NEW_ACCOUNT"
-        #modal = $(new_account_template())
-        #$("body").append(modal)
-        #modal.modal('show')
+      if data.message == "NEW_ACCOUNT"
         profile_editor = new intertwinkles.EditNewProfile()
         $("body").append(profile_editor.el)
         profile_editor.render()

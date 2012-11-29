@@ -101,7 +101,6 @@ class intertwinkles.EditNewProfile extends Backbone.View
     if not new_color or not /[a-f0-9A-F]{6}/.exec(new_color)?
       errors.push({field: "color", message: "Invalid color..."})
     if errors.length != 0
-      console.log errors
       for error in errors
         @$("input[name=#{error.field}]").parent().addClass("error")
         @$("input[name=#{error.field}]").after(
@@ -111,9 +110,9 @@ class intertwinkles.EditNewProfile extends Backbone.View
     else
       intertwinkles.socket.once "profile_updated", (data) =>
         @$("input[type=submit]").removeClass("loading")
+        console.log(data)
         if data.error?
           flash "error", "Oh Noes... Server errorrrrrrr........."
-          console.log(data)
           @$(".modal").modal("hide")
           @trigger "done"
         else
@@ -206,7 +205,6 @@ class intertwinkles.IconChooserLite extends Backbone.View
       @updater(@chosen + "") if @chosen?
 
   keyup: (event) =>
-    console.log(event)
     if @$("#id_icon_chooser").val() != intertwinkles.icon_defs[@chosen]
       @$(".chosen-image").html("")
       @$("#id_icon").val("")

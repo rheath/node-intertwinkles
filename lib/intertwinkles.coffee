@@ -5,66 +5,8 @@ _           = require 'underscore'
 uuid        = require 'node-uuid'
 http        = require 'http'
 https       = require 'https'
+async       = require 'async'
 
-# GET the resource residing at get_url with search query data `query`,
-# interpreting the response as JSON.
-get_json = (get_url, query, callback) ->
-  parsed_url = url.parse(get_url)
-  httplib = if parsed_url.protocol == 'https:' then https else http
-  opts = {
-    hostname: parsed_url.hostname
-    port: parseInt(parsed_url.port)
-    path: "#{parsed_url.pathname}?#{querystring.stringify(query)}"
-  }
-  req = httplib.get(opts, (res) ->
-    res.setEncoding('utf8')
-    data = ''
-    res.on 'data', (chunk) -> data += chunk
-    res.on 'end', ->
-      if res.statusCode != 200
-        return callback {error: "Intertwinkles status #{res.statusCode}"}
-      try
-        json = JSON.parse(data)
-      catch e
-        return callback {error: e}
-      if json.error?
-        callback(json)
-      else
-        callback(null, json)
-  ).on("error", (e) -> callback(error: e))
-
-# Post the given data to the given URL as form encoded data; interpret the
-# response as JSON.
-post_data = (post_url, data, callback) ->
-  post_url = url.parse(post_url)
-  httplib = if post_url.protocol == 'https:' then https else http
-  opts = {
-    hostname: post_url.hostname
-    port: parseInt(post_url.port)
-    path: post_url.pathname
-    method: 'POST'
-  }
-  req = httplib.request opts, (res) ->
-    res.setEncoding('utf8')
-    answer = ''
-    res.on 'data', (chunk) -> answer += chunk
-    res.on 'end', ->
-      return unless callback?
-      if res.statusCode == 200
-        try
-          json = JSON.parse(answer)
-        catch e
-          return callback {error: e}
-        if json.error?
-          callback(json)
-        callback(null, json)
-      else
-        callback({error: "Intertwinkles status #{res.statusCode}"})
-  data = querystring.stringify(data)
-  req.setHeader("Content-Type", "application/x-www-form-urlencoded")
-  req.setHeader("Content-Length", data.length)
-  req.write(data)
-  req.end()
 
 #
 # Attach intertwinkles to the given Express app and RoomManager iorooms.
@@ -98,14 +40,16 @@ attach = (config, app, iorooms) ->
           console.log "error", err, auth, groupdata
         else
           socket.session.auth = auth
+          socket.session.auth.user_id = _.find(groupdata.users, (u) -> u.email = auth.email).id
           socket.session.groups = { groups: groupdata.groups, users: groupdata.users }
           iorooms.saveSession socket.session, (err) ->
             if (err) then return socket.emit "error", {error: err}
 
             socket.emit reqdata.callback, {
-              email: auth.email,
+              user_id: socket.session.auth.user_id
+              email: socket.session.auth.email,
               groups: socket.session.groups,
-              messages: groupdata.messages
+              message: groupdata.message
             }
 
             #FIXME: Broadcast back to other sockets in this session that they
@@ -153,18 +97,18 @@ attach = (config, app, iorooms) ->
       if isNaN(data.model.icon.id)
         return respond("Invalid icon id")
 
-      profile_api_url = config.intertwinkles_api_url + "/api/profiles/"
+      profile_api_url = config.intertwinkles.api_url + "/api/profiles/"
 
-      post_data profile_api_url, {
+      utils.post_data profile_api_url, {
         api_key: config.intertwinkles.api_key,
         user: socket.session.auth.email
         name: data.model.name
         icon_id: data.model.icon.id
         icon_color: data.model.icon.color
-      }, (err, profile) ->
+      }, (err, data) ->
         return respond(err) if err?
-        socket.session.groups?.users[profile.id] = profile
-        respond(null, model: profile)
+        socket.session.groups?.users[data.model.id] = data.model
+        respond(null, model: data.model)
 
     iorooms.onChannel "get_events", (socket, data) ->
       unless (data.query? and data.callback? and
@@ -230,7 +174,7 @@ auth.verify = (assertion, config, callback) ->
         user: auth.email
       }
       # BrowserID success; now authorize with InterTwinkles.
-      get_json config.intertwinkles.api_url + "/api/groups/", query, (err, groups) ->
+      utils.get_json config.intertwinkles.api_url + "/api/groups/", query, (err, groups) ->
         callback(err, auth, groups)
 
 # Clear all session properties that intertwinkles adds when we log in.
@@ -349,14 +293,15 @@ mongo = {}
 # currently public.  Use for providing a dashboard listing of documents.
 mongo.list_public_documents = (schema, session, cb, condition={}, sort="modified", skip=0, limit=20, clean=true) ->
   # Find the public documents.
-  schema.find(_.extend({
+  query = _.extend({
     "sharing.advertise": true
     $or: [
       { "sharing.group_id": null },
       { "sharing.public_edit_until": { $gt: new Date() }}
       { "sharing.public_view_until": { $gt: new Date() }}
     ]
-  }, condition or {})).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
+  }, condition)
+  schema.find(query).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
     return cb(err) if err?
     if clean
       for doc in docs
@@ -370,13 +315,14 @@ mongo.list_group_documents = (schema, session, cb, condition={}, sort="modified"
   if not session?.auth?.email?
     cb(null, []) # Not signed in; we have no group docs.
   else
-    schema.find(_.extend({
+    query = _.extend({
       $or: [
-        {"sharing.group_id": { $in : (g.id for g in session.groups?.groups or []) }}
+        {"sharing.group_id": { $in : (id for id,g of session.groups?.groups or []) }}
         {"sharing.extra_editors": session.auth.email}
         {"sharing.extra_viewers": session.auth.email}
       ]
-    })).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
+    }, condition)
+    schema.find(query).sort(sort).skip(skip).limit(limit).exec (err, docs) ->
       return cb(err) if err?
       if clean
         for doc in docs
@@ -385,24 +331,11 @@ mongo.list_group_documents = (schema, session, cb, condition={}, sort="modified"
 
 # List both public and group documents, in an object {public: [docs], group: [docs]}
 mongo.list_accessible_documents = (schema, session, cb, condition={}, sort="modified", skip=0, limit=20, clean=true) ->
-
-  docs = {}
-
-  respond = (err, doclist, key) ->
-    return cb(err) if err
-    docs[key] = doclist
-    if docs.group? and docs.public?
-      # Exclude docs present in the group list from the public list.
-      # group_ids = (d.id for d in docs.group)
-      # public_ids = (d.id for d in docs.public)
-      # keep_public = _.difference(public_ids, group_ids)
-      # docs.public = _.filter(docs.public, (d) -> _.contains(keep_public, d.id))
-      cb(null, docs)
-
-  group_cb = (err, docs) -> respond(err, docs, "group")
-  public_cb = (err, docs) -> respond(err, docs, "public")
-  mongo.list_group_documents(schema, session, group_cb, condition, sort, skip, limit, clean)
-  mongo.list_public_documents(schema, session, public_cb, condition, sort, skip, limit, clean)
+  async.series [
+    (done) -> mongo.list_group_documents(schema, session, done, condition, sort, skip, limit, clean)
+    (done) -> mongo.list_public_documents(schema, session, done, condition, sort, skip, limit, clean)
+  ], (err, res) ->
+    cb(err, { group: res[0], public: res[1] })
 
 #
 # Events
@@ -418,7 +351,7 @@ events.get_events_for = (user, query, config, callback) ->
     api_key: config.intertwinkles.api_key
   }
   get_data.event = JSON.stringify(get_data.event)
-  get_json(events_api_url, get_data, callback)
+  utils.get_json(events_api_url, get_data, callback)
 
 events.timeout_queue = {}
 events.post_event_for = (user, query, config, callback, timeout) ->
@@ -442,7 +375,7 @@ events.post_event_for = (user, query, config, callback, timeout) ->
   post.event = JSON.stringify(post.event)
 
   # Post the event, and respond.
-  post_data(events_api_url, post, (err, data) ->
+  utils.post_data(events_api_url, post, (err, data) ->
     if timeout? and not err?
       events.timeout_queue[key] = data
       setTimeout (-> delete events.timeout_queue[key]), timeout
@@ -454,5 +387,64 @@ events.post_event_for = (user, query, config, callback, timeout) ->
 #
 utils = {}
 utils.slugify = (name) -> return name.toLowerCase().replace(/[^-a-z0-9]+/g, '-')
+# GET the resource residing at get_url with search query data `query`,
+# interpreting the response as JSON.
+utils.get_json = (get_url, query, callback) ->
+  parsed_url = url.parse(get_url)
+  httplib = if parsed_url.protocol == 'https:' then https else http
+  opts = {
+    hostname: parsed_url.hostname
+    port: parseInt(parsed_url.port)
+    path: "#{parsed_url.pathname}?#{querystring.stringify(query)}"
+  }
+  req = httplib.get(opts, (res) ->
+    res.setEncoding('utf8')
+    data = ''
+    res.on 'data', (chunk) -> data += chunk
+    res.on 'end', ->
+      if res.statusCode != 200
+        return callback {error: "Intertwinkles status #{res.statusCode}"}
+      try
+        json = JSON.parse(data)
+      catch e
+        return callback {error: e}
+      if json.error?
+        callback(json)
+      else
+        callback(null, json)
+  ).on("error", (e) -> callback(error: e))
+
+# Post the given data to the given URL as form encoded data; interpret the
+# response as JSON.
+utils.post_data = (post_url, data, callback) ->
+  post_url = url.parse(post_url)
+  httplib = if post_url.protocol == 'https:' then https else http
+  opts = {
+    hostname: post_url.hostname
+    port: parseInt(post_url.port)
+    path: post_url.pathname
+    method: 'POST'
+  }
+  req = httplib.request opts, (res) ->
+    res.setEncoding('utf8')
+    answer = ''
+    res.on 'data', (chunk) -> answer += chunk
+    res.on 'end', ->
+      return unless callback?
+      if res.statusCode == 200
+        try
+          json = JSON.parse(answer)
+        catch e
+          return callback {error: e}
+        if json.error?
+          callback(json)
+        callback(null, json)
+      else
+        callback({error: "Intertwinkles status #{res.statusCode}"})
+  data = querystring.stringify(data)
+  req.setHeader("Content-Type", "application/x-www-form-urlencoded")
+  req.setHeader("Content-Length", data.length)
+  req.write(data)
+  req.end()
 
 module.exports = _.extend {attach}, auth, sharing, mongo, events, utils

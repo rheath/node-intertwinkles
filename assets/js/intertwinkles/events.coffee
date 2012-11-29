@@ -2,6 +2,7 @@ intertwinkles.get_events = (query, callback) ->
   intertwinkles.socket.once "events", (data) ->
     if data.error? then return flash "error", data.error
     coll = new EventCollection()
+    console.log(query, coll)
     for event in data.events
       event.date = new Date(event.date)
       coll.add(new Event(event))
@@ -9,8 +10,8 @@ intertwinkles.get_events = (query, callback) ->
     
   intertwinkles.socket.emit "get_events", { callback: "events", query: query }
 
-intertwinkles.build_timeline = (selector, collection) ->
-  timeline = new TimelineView({ collection: collection })
+intertwinkles.build_timeline = (selector, collection, formatter) ->
+  timeline = new TimelineView({ collection: collection, formatter: formatter })
   $(selector).html(timeline.el)
   timeline.render()
   return timeline
@@ -28,15 +29,9 @@ ruled_timeline_template = "
         <div class='span8' style='position: relative;'>
           <% for (var j = 0; j < rows[i].length; j++) { %>
             <% var point = rows[i][j]; %>
-            <a
-              style='left: <%= point.left %>%;'
-              class='<%= point.type %>'
-              rel='popover'
-              data-placement='top'
-              data-trigger='hover'
-              title='<%= point.type %>'
-              data-content='<%= point.type %>'
-              ><%- point.icon %></a>
+            <span class='timeline-bump' style='left: <%= point.left %>%'>
+              <%- point.formatted %>
+            </span>
           <% } %>
         </div>
       </div>
@@ -206,6 +201,7 @@ class RuledTimelineView extends Backbone.View
 
   initialize: (options) ->
     @coll = options.collection
+    @formatter = options.formatter
 
   render: =>
     if @coll.length == 0
@@ -224,14 +220,11 @@ class RuledTimelineView extends Backbone.View
         rows[type] = []
         rows[type].label = entry.get("type")
         rows.push(rows[type])
-      entry_json = entry.toJSON()
-      entry_json.left = 100 * (entry.get("date").getTime() - min_time) / time_span
-      user = intertwinkles.users[entry_json.user]
-      if user?
-        entry_json.icon = "<img src='#{user.icon.tiny}' />"
-      else
-        entry_json.icon = "<i class='icon-user'></i>"
-      rows[type].push(entry_json)
+      point = {
+        formatted: @formatter(entry.toJSON())
+        left: 100 * (entry.get("date").getTime() - min_time) / time_span
+      }
+      rows[type].push(point)
 
     # Build timeline scale
     if time_span < 1000 * 60
@@ -281,3 +274,20 @@ class RuledTimelineView extends Backbone.View
     @$("[rel=popover]").popover()
 
 TimelineView = RuledTimelineView
+
+#"
+#            <a
+#              style='left: <%= point.left %>%;'
+#              class='<%= point.type %>'
+#              rel='popover'
+#              data-placement='top'
+#              data-trigger='hover'
+#              title='<%= point.type %>'
+#              data-content='<%= point.type %>'
+#              ><%- point.icon %></a>
+#      user = intertwinkles.users[entry_json.user]
+#      if user?
+#        entry_json.icon = "<img src='#{user.icon.tiny}' />"
+#      else
+#        entry_json.icon = "<i class='icon-user'></i>"
+#"
