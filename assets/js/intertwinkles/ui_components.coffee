@@ -175,6 +175,7 @@ class intertwinkles.Toolbar extends Backbone.View
 
   remove: =>
     @user_menu?.remove()
+    @notification_menu?.remove()
     super()
 
   render: =>
@@ -188,9 +189,16 @@ class intertwinkles.Toolbar extends Backbone.View
 
     @$el.html @template({apps: apps})
 
+    @user_menu?.remove()
     @user_menu = new intertwinkles.UserMenu()
     @$(".user-menu.dropdown").replaceWith(@user_menu.el)
     @user_menu.render()
+
+    @notification_menu?.remove()
+    @notification_menu = new intertwinkles.NotificationMenu()
+    @$(".notifications").replaceWith(@notification_menu.el)
+    @notification_menu.render()
+
     this
 
   setAuthFrameVisibility: => @user_menu.setAuthFrameVisibility()

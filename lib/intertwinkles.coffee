@@ -110,15 +110,24 @@ attach = (config, app, iorooms) ->
         socket.session.groups?.users[data.model.id] = data.model
         respond(null, model: data.model)
 
+    # Get notifications
+    iorooms.onChannel "get_notifications", (socket, data) ->
+      return unless auth.is_authenticated(socket.session)
+      utils.get_json "#{config.intertwinkles.api_url}/api/notifications/", {
+        api_key: config.intertwinkles.api_key
+        user: socket.session.auth.email
+      }, (err, data) ->
+        return socket.emit "error", {error: err} if err?
+        console.log data
+        socket.emit "notifications", data
+
+    # Get events
     iorooms.onChannel "get_events", (socket, data) ->
       unless (data.query? and data.callback? and
           auth.is_authenticated(socket.session))
         return socket.emit "error", {error: "Invalid events query"}
-
-      events.get_events_for(
-        socket.session.auth.email, data.query, config, (err, results) ->
+      events.get_events_for socket.session.auth.email, data.query, config, (err, results) ->
           socket.emit data.callback, {events: results.events}
-      )
 
     # Join room
     iorooms.on "join", (data) ->
@@ -440,7 +449,7 @@ utils.post_data = (post_url, data, callback) ->
           callback(json)
         callback(null, json)
       else
-        callback({error: "Intertwinkles status #{res.statusCode}"})
+        callback({error: "Intertwinkles status #{res.statusCode}", message: answer})
   data = querystring.stringify(data)
   req.setHeader("Content-Type", "application/x-www-form-urlencoded")
   req.setHeader("Content-Length", data.length)

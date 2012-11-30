@@ -28,6 +28,7 @@
 #= require ./ui_components
 #= require ./sharing
 #= require ./events
+#= require ./notifications
 #= require ./utilities
 
 $(document).ready ->
