@@ -430,22 +430,20 @@ notifications.suppress_notice = (user, notification_id, config, callback) ->
 # Search
 #
 
-search = {
-  url: config.intertwinkles.api_url + "/api/search/"
-}
+search = {}
+
+_post_search = (params, config, callback, method) ->
+  search_url = config.intertwinkles.api_url + "/api/search/"
+  data = _.extend({ api_key: config.intertwinkles.api_key }, params)
+  if data.sharing?
+    data.sharing = JSON.stringify(data.sharing)
+  utils.post_data(search_url, data, callback, method)
 
 search.post_search_index = (params, config, callback) ->
-  data = _.extend({
-    api_key: config.intertwinkles.api_key
-  }, params)
-  utils.post_data(search.url, data, callback)
+  _post_search(params, config, callback, 'POST')
 
 search.remove_search_index = (params, config, callback) ->
-  data = _.extend({
-    api_key: config.intertwinkles.api_key
-  }, params)
-  utils.post_data(search.url, data, callback, 'DELETE')
-
+  _post_search(params, config, callback, 'DELETE')
 
 #
 # Utilities
@@ -512,4 +510,4 @@ utils.post_data = (post_url, data, callback, method='POST') ->
   req.write(data)
   req.end()
 
-module.exports = _.extend {attach}, auth, sharing, mongo, events, notifications, utils
+module.exports = _.extend {attach}, auth, sharing, mongo, events, notifications, search, utils
