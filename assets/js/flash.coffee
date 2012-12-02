@@ -24,7 +24,7 @@ class FlashView extends Backbone.View
   render: =>
     $(@el).html @template message: @model.get "message"
     $(@el).addClass @model.get "level"
-    if @model.get("level") == "info"
+    if @model.get("level") != "error"
       setTimeout =>
         @closeMessage()
       , 4000

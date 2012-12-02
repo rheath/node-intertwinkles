@@ -65,6 +65,8 @@ cursive-font()
 .nav li a.brand
   color: #000
 
+.dropdown-menu li.linkless
+  padding: 3px 20px
 
 
 /*
@@ -253,6 +255,33 @@ ul.sharing-online-group
   .date-legend
     position: absolute
     white-space: nowrap
+
+/*
+  Notifications
+*/
+
+.notification-menu, .navbar .nav > li.notification-menu
+  position: relative
+  a.notification-trigger, a.notification-trigger:hover
+    background-col
+    border-radius: 1.5em
+  a.notification-trigger, a.notification-trigger:hover
+    background-color: rgba(200, 200, 200, 0.2)
+    &.unread
+      background-color: orangered
+  a.notification-trigger.unread
+    color: white
+    text-shadow: #000 1px 1px 2px
+    font-weight: bold
+  a.notification-trigger.unread:hover
+    color: white
+    text-shadow: #999 1px 1px
+
+  .notifications
+    width: 25em
+  .message
+    max-width: 100%
+    white-space: normal
 
   
 /*

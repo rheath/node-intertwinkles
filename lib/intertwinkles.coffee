@@ -37,7 +37,7 @@ attach = (config, app, iorooms) ->
           socket.session.auth = null
           socket.session.groups = null
           iorooms.saveSession(socket.session)
-          console.log "error", err, auth, groupdata
+          console.error "error", err, auth, groupdata
         else
           socket.session.auth = auth
           socket.session.auth.user_id = _.find(groupdata.users, (u) -> u.email = auth.email).id
@@ -52,8 +52,8 @@ attach = (config, app, iorooms) ->
               message: groupdata.message
             }
 
-            #FIXME: Broadcast back to other sockets in this session that they
-            #have logged in. Maybe use a dedicated listener (e.g. 'auth')
+            #TODO: Broadcast back to other sockets in this session that they
+            #have logged in? Maybe use a dedicated listener (e.g. 'auth')
             #instead of a 'once' listener with reqdata.callback
 
             # Update all room's user lists to include our logged in name
@@ -118,7 +118,6 @@ attach = (config, app, iorooms) ->
         user: socket.session.auth.email
       }, (err, data) ->
         return socket.emit "error", {error: err} if err?
-        console.log data
         socket.emit "notifications", data
 
     # Get events
@@ -174,17 +173,17 @@ auth.verify = (assertion, config, callback) ->
   # Second, authorize the user with the InterTwinkles api server.
   #audience = "#{config.host}:#{config.port}"
   audience = config.intertwinkles.api_url.split("://")[1]
-  browserid.verify assertion, audience, (err, auth) ->
+  browserid.verify assertion, audience, (err, persona_response) ->
     if (err)
       callback({'error': err})
     else
-      query = {
-        api_key: config.intertwinkles.api_key
-        user: auth.email
-      }
       # BrowserID success; now authorize with InterTwinkles.
-      utils.get_json config.intertwinkles.api_url + "/api/groups/", query, (err, groups) ->
-        callback(err, auth, groups)
+      auth.get_groups persona_response.email, config, (err, groups) ->
+        callback(err, persona_response, groups)
+
+auth.get_groups = (user, config, callback) ->
+  query = { api_key: config.intertwinkles.api_key, user: user }
+  utils.get_json(config.intertwinkles.api_url + "/api/groups/", query, callback)
 
 # Clear all session properties that intertwinkles adds when we log in.
 auth.clear_auth_session = (session) ->
@@ -392,6 +391,63 @@ events.post_event_for = (user, query, config, callback, timeout) ->
   )
 
 #
+# Notifications
+#
+
+notifications = {}
+
+notifications.post_notices = (params, config, callback) ->
+  notice_api_url = config.intertwinkles.api_url + "/api/notifications/"
+  data = {
+    params: JSON.stringify(params)
+    api_key: config.intertwinkles.api_key
+  }
+  utils.post_data(notice_api_url, data, callback)
+
+notifications.get_notices = (user, config, callback) ->
+  utils.get_json(
+    config.intertwinkles.api_url + "/api/notifications/",
+    {user: user, api_key: config.intertwinkles.api_key},
+    callback
+  )
+
+notifications.clear_notices = (params, config, callback) ->
+  data = _.extend({
+    api_key: config.intertwinkles.api_key
+  }, params)
+  utils.post_data(
+    config.intertwinkles.api_url + "/api/notifications/clear", data, callback
+  )
+
+notifications.suppress_notice = (user, notification_id, config, callback) ->
+  utils.post_data(
+    config.intertwinkles.api_url + "/api/notifications/suppress",
+    {api_key: config.intertwinkles.api_key, user: user, notification_id: notification_id},
+    callback
+  )
+
+#
+# Search
+#
+
+search = {
+  url: config.intertwinkles.api_url + "/api/search/"
+}
+
+search.post_search_index = (params, config, callback) ->
+  data = _.extend({
+    api_key: config.intertwinkles.api_key
+  }, params)
+  utils.post_data(search.url, data, callback)
+
+search.remove_search_index = (params, config, callback) ->
+  data = _.extend({
+    api_key: config.intertwinkles.api_key
+  }, params)
+  utils.post_data(search.url, data, callback, 'DELETE')
+
+
+#
 # Utilities
 #
 utils = {}
@@ -425,14 +481,14 @@ utils.get_json = (get_url, query, callback) ->
 
 # Post the given data to the given URL as form encoded data; interpret the
 # response as JSON.
-utils.post_data = (post_url, data, callback) ->
+utils.post_data = (post_url, data, callback, method='POST') ->
   post_url = url.parse(post_url)
   httplib = if post_url.protocol == 'https:' then https else http
   opts = {
     hostname: post_url.hostname
     port: parseInt(post_url.port)
     path: post_url.pathname
-    method: 'POST'
+    method: method
   }
   req = httplib.request opts, (res) ->
     res.setEncoding('utf8')
@@ -456,4 +512,4 @@ utils.post_data = (post_url, data, callback) ->
   req.write(data)
   req.end()
 
-module.exports = _.extend {attach}, auth, sharing, mongo, events, utils
+module.exports = _.extend {attach}, auth, sharing, mongo, events, notifications, utils
