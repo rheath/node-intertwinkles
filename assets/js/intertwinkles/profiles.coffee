@@ -110,7 +110,6 @@ class intertwinkles.EditNewProfile extends Backbone.View
     else
       intertwinkles.socket.once "profile_updated", (data) =>
         @$("input[type=submit]").removeClass("loading")
-        console.log(data)
         if data.error?
           flash "error", "Oh Noes... Server errorrrrrrr........."
           @$(".modal").modal("hide")

@@ -9,12 +9,12 @@ notification_menu_template = _.template("""
       <% var notice = notices[i]; %>
       <li class='notification <%= notice.read ? "read" : "" %>'>
         <a href='<%= notice.url %>' data-notification-id='<%= notice._id %>'>
-          <span class='image'>
+          <div class='sender'>
             <% var sender = intertwinkles.users[notice.sender]; %>
             <% if (sender) { %>
-              <img src='<%= sender.icon.small %>' />
+              <img src='<%= sender.icon.small %>' /> <%= sender.name %>:
             <% } %>
-          </span>
+          </div>
           <div class='message'>
             <div class='body'><%= notice.formats.web %></div>
             <div class='byline'><span class='date' data-date='<%= notice.date %>'></span></div>
@@ -55,14 +55,12 @@ class intertwinkles.NotificationMenu extends Backbone.View
 
   fetchNotifications: (data) =>
     if intertwinkles.is_authenticated()
-      console.log "fetch notifications"
       intertwinkles.socket.emit "get_notifications" # should result in 'render'
     else
       @notices = []
       @render() # just nuke 'em!
 
   handleNotifications: (data) =>
-    console.log "handle notifications", data
     @notices = data.notifications
     @render()
 

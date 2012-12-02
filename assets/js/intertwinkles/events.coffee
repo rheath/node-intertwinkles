@@ -2,7 +2,6 @@ intertwinkles.get_events = (query, callback) ->
   intertwinkles.socket.once "events", (data) ->
     if data.error? then return flash "error", data.error
     coll = new EventCollection()
-    console.log(query, coll)
     for event in data.events
       event.date = new Date(event.date)
       coll.add(new Event(event))

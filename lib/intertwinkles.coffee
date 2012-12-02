@@ -354,11 +354,10 @@ events = {}
 events.get_events_for = (user, query, config, callback) ->
   events_api_url = config.intertwinkles.api_url + "/api/events/"
   get_data = {
-    event: query,
+    event: JSON.stringify(query),
     user: user,
     api_key: config.intertwinkles.api_key
   }
-  get_data.event = JSON.stringify(get_data.event)
   utils.get_json(events_api_url, get_data, callback)
 
 events.timeout_queue = {}
@@ -380,7 +379,6 @@ events.post_event_for = (user, query, config, callback, timeout) ->
     user: user
     api_key: config.intertwinkles.api_key
   }
-  post.event = JSON.stringify(post.event)
 
   # Post the event, and respond.
   utils.post_data(events_api_url, post, (err, data) ->
@@ -399,7 +397,7 @@ notifications = {}
 notifications.post_notices = (params, config, callback) ->
   notice_api_url = config.intertwinkles.api_url + "/api/notifications/"
   data = {
-    params: JSON.stringify(params)
+    params: params
     api_key: config.intertwinkles.api_key
   }
   utils.post_data(notice_api_url, data, callback)
@@ -435,8 +433,6 @@ search = {}
 _post_search = (params, config, callback, method) ->
   search_url = config.intertwinkles.api_url + "/api/search/"
   data = _.extend({ api_key: config.intertwinkles.api_key }, params)
-  if data.sharing?
-    data.sharing = JSON.stringify(data.sharing)
   utils.post_data(search_url, data, callback, method)
 
 search.post_search_index = (params, config, callback) ->
@@ -466,7 +462,7 @@ utils.get_json = (get_url, query, callback) ->
     res.on 'data', (chunk) -> data += chunk
     res.on 'end', ->
       if res.statusCode != 200
-        return callback {error: "Intertwinkles status #{res.statusCode}"}
+        return callback {error: "Intertwinkles status #{res.statusCode}", msg: JSON.stringify(data)}
       try
         json = JSON.parse(data)
       catch e
@@ -504,8 +500,8 @@ utils.post_data = (post_url, data, callback, method='POST') ->
         callback(null, json)
       else
         callback({error: "Intertwinkles status #{res.statusCode}", message: answer})
-  data = querystring.stringify(data)
-  req.setHeader("Content-Type", "application/x-www-form-urlencoded")
+  data = JSON.stringify(data)
+  req.setHeader("Content-Type", "application/json")
   req.setHeader("Content-Length", data.length)
   req.write(data)
   req.end()
