@@ -433,7 +433,13 @@ search = {}
 _post_search = (params, config, callback, method) ->
   search_url = config.intertwinkles.api_url + "/api/search/"
   data = _.extend({ api_key: config.intertwinkles.api_key }, params)
-  utils.post_data(search_url, data, callback, method)
+  if method == 'GET'
+    utils.get_json(search_url, data, callback)
+  else
+    utils.post_data(search_url, data, callback, method)
+
+search.search = (params, config, callback) ->
+  _post_search(params, config, callback, 'GET')
 
 search.post_search_index = (params, config, callback) ->
   _post_search(params, config, callback, 'POST')
