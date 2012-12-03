@@ -268,7 +268,7 @@ class intertwinkles.UserChoice extends Backbone.View
   tagName: "span"
   template: user_choice_template
   events:
-    'keydown input': 'keyup'
+    'keydown input': 'onkey'
 
   initialize: (options={}) ->
     @model = options.model or {}
@@ -303,7 +303,7 @@ class intertwinkles.UserChoice extends Backbone.View
     }
     this
 
-  keyup: (event) =>
+  onkey: (event) =>
     if @$("#id_user").val() != @model.name
       @$(".icon-holder").html("")
       @$("#id_user_id").val("")
@@ -313,7 +313,8 @@ class intertwinkles.UserChoice extends Backbone.View
     return ("#{id}" for id,u of intertwinkles.users)
 
   matcher: (item) ->
-    return intertwinkles.users[item].name.toLowerCase().indexOf(@query.toLowerCase()) != -1
+    name = intertwinkles.users[item]?.name
+    return name and name.toLowerCase().indexOf(@query.toLowerCase()) != -1
 
   sorter: (items) ->
     return _.sortBy items, (a) -> intertwinkles.users[a].name
