@@ -159,6 +159,25 @@ toolbar_template = _.template("""
           </li>
         </ul>
         <ul class='nav pull-right'>
+          <li class='search-menu dropdown'>
+            <a href='#' title='search' data-toggle='dropdown' class='search-menu-trigger'>
+              <span class='hidden-phone'>Search</span> <i class='icon-search'></i>
+            </a>
+            <ul class='dropdown-menu search' role='menu' aria-labeledby='dlogo'>
+              <li class='linkless'>
+                <form class='form-search'
+                      action='<%= INTERTWINKLES_APPS.home.url %>/search/'
+                      method='GET'>
+                  <div class='input-append'>
+                    <input class='input-medium search-query' type='text' name='q' />
+                    <button class='btn' type='submit'>
+                      <i class='icon-search' title='Search'></i>
+                    </button>
+                  </div>
+                </form>
+              </li>
+            </ul>
+          </li>
           <li class='notifications dropdown'></li>
           <li class='user-menu dropdown'></li>
           <li class='auth_frame'></li>

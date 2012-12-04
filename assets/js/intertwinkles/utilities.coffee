@@ -206,3 +206,37 @@ intertwinkles.match_color = (hexstr) ->
       best = name
   return best
 
+intertwinkles.instasearch = (form_selector, results_selector, callback) ->
+  # Given a page with a search form which returns results on the same page,
+  # eliminate the page load, and make every keypress on that form trigger
+  # instant search.  Do this using pushState in the browser, and parsing the
+  # DOM of the full page returned (e.g. the server thinks you're just reloading
+  # the whole page). 
+  if (window.history.pushState)
+    subTimeout = null
+    submit_it = ->
+      $(form_selector).submit()
+    $("select", form_selector).on('change', submit_it)
+    $("input[type=text]", form_selector).on('keyup', submit_it)
+    $(form_selector).submit (event) ->
+      event.preventDefault()
+      $(".loading", results_selector).show()
+      clearTimeout(subTimeout) if (subTimeout)
+      subTimeout = setTimeout ->
+        $.ajax {
+          url:"?" + $(form_selector).formSerialize(),
+          type: 'GET',
+          success: (data) ->
+            new_doc = $("<div>" + data + "</div>")
+            $(results_selector, document).html(
+              $(results_selector, new_doc).html()
+            )
+            history.replaceState({}, "", "?" + $(form_selector).formSerialize())
+            callback?()
+          error: (data) ->
+            console.log(data)
+            alert("Server error!")
+            callback?("error")
+        }
+        $(this).ajaxSubmit()
+      , 500

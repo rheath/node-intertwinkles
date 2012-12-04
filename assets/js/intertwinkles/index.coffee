@@ -1,6 +1,7 @@
 #= require ../vendor/jquery.js
 #= require ../vendor/jquery-ui-1.9.1.custom.js
 #= require ../vendor/jquerypp.custom.js
+#= require ../vendor/jquery.form.js
 #= require ../vendor/underscore.js
 #= require ../vendor/underscore-autoescape.js
 #= require ../vendor/backbone.js
@@ -64,4 +65,14 @@ $(document).ready ->
     mod.modal()
     return false
 
-
+  $(".search-menu-trigger").on "click", ->
+    el = $(".dropdown-menu.search input[name=q]")
+    interval = setInterval ->
+      if el.is(":visible")
+        el.select()
+        clearInterval(interval)
+    , 100
+    setTimeout ->
+      if interval
+        clearInterval(interval)
+    , 1000
