@@ -367,7 +367,8 @@ class intertwinkles.UserChoice extends Backbone.View
 
 group_choice_template = _.template("""
   <% if (intertwinkles.is_authenticated()) { %>
-    <% if (_.keys(intertwinkles.groups).length > 0) { %>
+    <% var has_group = _.keys(intertwinkles.groups).length > 0; %>
+    <% if (has_group) { %>
       <select id='id_group'>
         <option value=''>----</option>
         <% for (var key in intertwinkles.groups) { %>
@@ -376,10 +377,11 @@ group_choice_template = _.template("""
         <% } %>
       </select>
     <% } else { %>
+      <input type='hidden' id='id_group' />
       You don't have any groups yet.
     <% } %>
     <br />
-    (or <a href='<%= INTERTWINKLES_APPS.home.url %>/groups/new/'>create a new group</a>)
+    (<%= has_group ? "or " : "" %><a href='<%= INTERTWINKLES_APPS.home.url %>/groups/new/'>create a new group</a>)
   <% } else { %>
     Sign in to add a group.
   <% } %>

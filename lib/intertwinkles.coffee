@@ -126,7 +126,7 @@ attach = (config, app, iorooms) ->
           auth.is_authenticated(socket.session))
         return socket.emit "error", {error: "Invalid events query"}
       events.get_events_for socket.session.auth.email, data.query, config, (err, results) ->
-          socket.emit data.callback, {events: results.events}
+          socket.emit data.callback, {events: results?.events}
 
     # Join room
     iorooms.on "join", (data) ->

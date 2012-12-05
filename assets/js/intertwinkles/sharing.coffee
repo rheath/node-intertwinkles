@@ -1,4 +1,50 @@
 #
+# Sharing permissions control, duplicating logic on server.
+# See: node-intertwinkles/lib/intertwinkles.coffee
+#
+_get_sharing = (model) ->
+  return model?.get?("sharing") or model?.sharing or {}
+
+intertwinkles.can_view = (model) ->
+  return true if intertwinkles.can_edit(model)
+  sharing = _get_sharing(model)
+  return true if new Date(sharing.public_view_until) > new Date()
+  return true if _.find(sharing.extra_viewers or [], (e) ->
+    e == intertwinkles.user.get("email"))
+
+intertwinkles.can_edit = (model) ->
+  sharing = _get_sharing(model)
+  # No group? Everyone can edit.
+  return true if not sharing.group_id?
+  # Even with a group, it might be marked public.
+  return true if new Date(sharing.public_edit_until) > new Date()
+  # Otherwise, must be logged in.
+  return false if not intertwinkles.is_authenticated()
+  # All good if we're in the owning group.
+  return true if intertwinkles.groups[sharing.group_id]?
+  # All good if explicitly allowed to edit.
+  return true if _.find(sharing.extra_editors or [], (e) ->
+    e == intertwinkles.user.get("email"))
+  return false
+
+intertwinkles.can_change_sharing = (model) ->
+  sharing = _get_sharing(model)
+  # No group, and no explicit editors, go ahead.
+  return true if not sharing.group_id? and (
+    (sharing.extra_editors or []).length == 0
+  )
+  # Otherwise, must be logged in.
+  return false unless intertwinkles.is_authenticated()
+  # All good if you belong to the group.
+  return true if _.find(
+    intertwinkles.groups or [],
+    (g) -> g._id == sharing.group_id
+  )
+  # All good if you're an explicit editor.
+  return true if _.find(sharing.extra_editors or [], intertwinkles.user.get("email"))
+  return false
+
+#
 # Sharing control widget
 #
 
@@ -310,7 +356,12 @@ intertwinkles.sharing_summary = (sharing) ->
     if not is_public
       perms.push("All others, and people who aren't signed in, can't touch this.")
   if is_public
-    perms.push("The link will #{if sharing.advertise then "" else "not"} be listed publicly.")
+    if sharing.advertise
+      perms.push("The link will show up in public search results.")
+    else if sharing.group_id?
+      perms.push("The link will show up in group members' search results only.")
+    else
+      perms.push("The link won't show up in search results.")
   return {
     title: short_title
     content: perms.join("<br />")
