@@ -161,7 +161,8 @@ toolbar_template = _.template("""
         <ul class='nav pull-right'>
           <li class='search-menu dropdown'>
             <a href='#' title='search' data-toggle='dropdown' class='search-menu-trigger'>
-              <span class='hidden-phone'>Search</span> <i class='icon-search'></i>
+              <i class='icon-search'></i>
+              <span class='hidden-phone'>Search</span>
             </a>
             <ul class='dropdown-menu search' role='menu' aria-labeledby='dlogo'>
               <li class='linkless'>

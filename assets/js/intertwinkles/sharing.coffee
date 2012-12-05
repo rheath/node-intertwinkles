@@ -56,7 +56,7 @@ sharing_control_template = _.template("""
     </div>
 
     <div class='summary'>
-      <h4>Sharing summary:</h4>
+      <!--<h4>Sharing summary:</h4>-->
       <b><span class='summary-title'></span></b>
       <div class='summary-content'></div>
     </div>
