@@ -298,14 +298,20 @@ class intertwinkles.UserChoice extends Backbone.View
     intertwinkles.user.off "change", @render
     super()
 
+  set: (user_id, name) =>
+    @model = { user_id: user_id, name: name }
+    @$("#user_id").val(name)
+    @$("#id_user_id").val(user_id)
+    @render()
+
   render: =>
-    user_id = @model.get("user_id")
+    user_id = @model.get?("user_id") or @model.user_id
     if user_id and intertwinkles.users?[user_id]?
       name = intertwinkles.users[user_id].name
       icon = intertwinkles.users[user_id].icon
     else
       user_id = ""
-      name = @model.get("name") or ""
+      name = @model.get?("name") or @model.name or ""
       icon = {}
 
     @$el.html(@template({
@@ -324,7 +330,7 @@ class intertwinkles.UserChoice extends Backbone.View
     this
 
   onkey: (event) =>
-    if @$("#id_user").val() != @model.name
+    if @$("#id_user").val() != @model.get?("name") or @model.name
       @$(".icon-holder").html("")
       @$("#id_user_id").val("")
       @$(".unknown").html("Not a known group member.")

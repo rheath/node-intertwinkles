@@ -52,7 +52,8 @@ sharing_control_template = _.template("""
   <% if (intertwinkles.is_authenticated()) { %>
 
     <div class='group-options'>
-      Belongs to group: <div class='group-choice'></div>
+      <% if (_.keys(intertwinkles.groups).length > 0) { %> Belongs to group: <% } %>
+        <div class='group-choice'></div>
       <hr>
     </div>
 
@@ -293,16 +294,16 @@ intertwinkles.sharing_summary = (sharing) ->
   short_title = ""
   if not sharing?
     short_title = "Public with secret URL"
-    perms.push("Anyone with the link can edit.")
+    perms.push("Anyone with the link can edit, but it won't show up in search results.")
   else if not sharing.group_id?
     if sharing.advertise
       short_title = "Public wiki"
       icon_class = "icon-globe"
-      perms.push("Anyone can find and edit.")
+      perms.push("Anyone can find and edit. It will show up in search results.")
     else
       short_title = "Public with secret URL"
       icon_class = "icon-share"
-      perms.push("Anyone with the link can edit.")
+      perms.push("Anyone with the link can edit, but it won't show up in search results.")
   else
     now = new Date()
     is_public = false
@@ -429,11 +430,16 @@ class intertwinkles.SharingSettingsButton extends Backbone.View
 
   initialize: (options={}) ->
     @model = options.model
-    @model.on "change:sharing", @render
-    @read_only = if options.read_only == true then true else false
-    intertwinkles.user.on "change", @render
+    @model.on "change:sharing", @render, this
+    intertwinkles.user.on "change", @render, this
+
+  remove: =>
+    intertwinkles.user.off null, null, this
+    @model.off null, null, this
+    super()
 
   render: =>
+    @read_only = not intertwinkles.can_change_sharing(@model)
     summary = intertwinkles.sharing_summary(intertwinkles.normalize_sharing(
       @model.get("sharing")
     ))
