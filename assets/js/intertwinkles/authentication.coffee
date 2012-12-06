@@ -8,8 +8,9 @@ intertwinkles.user = new intertwinkles.User()
 intertwinkles.users = null  # map of intertwinkles user_id to user data
 intertwinkles.groups = null # list of groups
 if INITIAL_DATA.groups?
-  intertwinkles.users = INITIAL_DATA.groups.users
-  intertwinkles.groups = INITIAL_DATA.groups.groups
+  intertwinkles.groups = INITIAL_DATA.groups
+if INITIAL_DATA.users?
+  intertwinkles.users = INITIAL_DATA.users
   user = _.find intertwinkles.users, (e) -> e.email == INITIAL_DATA.email
   if user? then intertwinkles.user.set(user)
 
@@ -32,8 +33,8 @@ onlogin = (assertion) ->
   handle = (data) ->
     old_user = intertwinkles.user?.get("email")
     if not data.error? and data.email
-      intertwinkles.users = data.groups.users
-      intertwinkles.groups = data.groups.groups
+      intertwinkles.users = data.users
+      intertwinkles.groups = data.groups
       user = _.find intertwinkles.users, (e) -> e.email == data.email
       if user?
         intertwinkles.user.set(user)

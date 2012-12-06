@@ -19,9 +19,9 @@ attach = (config, app, iorooms) ->
         if err? then return cb(err)
         room_list = []
         for session in sessions
-          authenticated = session.auth?.email? and session.groups?.users?
+          authenticated = session.auth?.email? and session.users?
           if authenticated
-            user = _.find session.groups.users, (u) -> u.email == session.auth.email
+            user = _.find session.users, (u) -> u.email == session.auth.email
             info = { name: user.name, icon: user.icon }
           else
             info = { name: "Anonymous", icon: null }
@@ -36,12 +36,14 @@ attach = (config, app, iorooms) ->
           socket.emit("error", err)
           socket.session.auth = null
           socket.session.groups = null
+          socket.session.users = null
           iorooms.saveSession(socket.session)
           console.error "error", err, auth, groupdata
         else
           socket.session.auth = auth
           socket.session.auth.user_id = _.find(groupdata.users, (u) -> u.email = auth.email).id
-          socket.session.groups = { groups: groupdata.groups, users: groupdata.users }
+          socket.session.groups = groupdata.groups
+          socket.session.users = groupdata.users
           iorooms.saveSession socket.session, (err) ->
             if (err) then return socket.emit "error", {error: err}
 
@@ -49,6 +51,7 @@ attach = (config, app, iorooms) ->
               user_id: socket.session.auth.user_id
               email: socket.session.auth.email,
               groups: socket.session.groups,
+              users: socket.session.users,
               message: groupdata.message
             }
 
@@ -69,6 +72,7 @@ attach = (config, app, iorooms) ->
       # Keep the session around, so that we maintain our socket list.
       socket.session.auth = null
       socket.session.groups = null
+      socket.session.users = null
       iorooms.saveSession socket.session, ->
         socket.emit(data.callback, {status: "success"})
 
@@ -107,7 +111,7 @@ attach = (config, app, iorooms) ->
         icon_color: data.model.icon.color
       }, (err, data) ->
         return respond(err) if err?
-        socket.session.groups?.users[data.model.id] = data.model
+        socket.session.users?[data.model.id] = data.model
         respond(null, model: data.model)
 
     # Get notifications
@@ -119,14 +123,6 @@ attach = (config, app, iorooms) ->
       }, (err, data) ->
         return socket.emit "error", {error: err} if err?
         socket.emit "notifications", data
-
-    # Get events
-    iorooms.onChannel "get_events", (socket, data) ->
-      unless (data.query? and data.callback? and
-          auth.is_authenticated(socket.session))
-        return socket.emit "error", {error: "Invalid events query"}
-      events.get_events_for socket.session.auth.email, data.query, config, (err, results) ->
-          socket.emit data.callback, {events: results?.events}
 
     # Join room
     iorooms.on "join", (data) ->
@@ -189,8 +185,16 @@ auth.get_groups = (user, config, callback) ->
 auth.clear_auth_session = (session) ->
   delete session.auth
   delete session.groups
+  delete session.users
 
 auth.is_authenticated = (session) -> return session.auth?.email?
+
+auth.get_initial_data = (session) ->
+  initial_data = {
+    email: session?.auth?.email or null
+    groups: session?.groups or {}
+    users: session?.users or {}
+  }
 
 #
 # Permissions. Expects 'session' to have auth and groups params as populated by
@@ -238,7 +242,7 @@ sharing.can_edit = (session, model) ->
   # Otherwise, we have to be signed in.
   return false if not session.auth?.email?
   # Or we could be in a group that owns this.
-  return true if _.find(session.groups.groups, (g) -> "" + g.id == "" + model.sharing?.group_id)
+  return true if _.find(session.groups, (g) -> "" + g.id == "" + model.sharing?.group_id)
   # Or marked as specifically allowed to edit
   return true if (
     model.sharing?.extra_editors? and
@@ -255,10 +259,7 @@ sharing.can_change_sharing = (session, model) ->
   # Doc belongs to a group.  Must be logged in.
   return false unless session?.auth?.email
   # All good if you belong to the group.
-  return true if _.find(
-    session?.groups?.groups or [],
-    (g) -> "" + g.id == "" + model.sharing.group_id
-  )
+  return true if session?.groups?[model.sharing.group_id]?
   # All good if you are an explicit extra editor
   return true if _.find(model.sharing?.extra_editors or [], session.auth.email)
   return false
@@ -283,8 +284,8 @@ sharing.clean_sharing = (session, model) ->
   # If we're in the group, or in the list of approved viewers/editors, show the
   # addresses.
   email = session.auth.email
-  group = _.find(session.groups.groups, (g) -> "" + g.id == "" + model.sharing.group_id)
-  if (group or
+  group = session.groups?[model.sharing.group_id]
+  if (group? or
       model.sharing.extra_editors?.indexOf(email) != -1 or
       model.sharing.extra_viewers?.indexOf(email) != -1)
     cleaned.extra_editors = (e for e in model.sharing.extra_editors or [])
@@ -325,7 +326,7 @@ mongo.list_group_documents = (schema, session, cb, condition={}, sort="modified"
   else
     query = _.extend({
       $or: [
-        {"sharing.group_id": { $in : (id for id,g of session.groups?.groups or []) }}
+        {"sharing.group_id": { $in : (id for id,g of session.groups or []) }}
         {"sharing.extra_editors": session.auth.email}
         {"sharing.extra_viewers": session.auth.email}
       ]
@@ -351,24 +352,30 @@ mongo.list_accessible_documents = (schema, session, cb, condition={}, sort="modi
 
 events = {}
 
-events.get_events_for = (user, query, config, callback) ->
+events.get_events = (query, config, callback) ->
   events_api_url = config.intertwinkles.api_url + "/api/events/"
   get_data = {
     event: JSON.stringify(query),
-    user: user,
     api_key: config.intertwinkles.api_key
   }
   utils.get_json(events_api_url, get_data, callback)
 
 events.timeout_queue = {}
-events.post_event_for = (user, query, config, callback, timeout) ->
+events.post_event = (query, config, callback, timeout) ->
   # If we are passed a timeout argument, store the results of the event posting
   # for the duration of that time, and return that data while it's stored.
   # The event is considered the same if it shares the same properties with the
   # exception of "data" and "date".
   key = null
   if timeout?
-    key = [query.application, query.entity, query.type, query.user, query.group].join(":")
+    key = [
+      query.application,
+      query.entity,
+      query.type,
+      query.user,
+      query.anon_id,
+      query.group
+    ].join(":")
     if events.timeout_queue[key]
       return callback?(null, events.timeout_queue[key])
 
@@ -376,7 +383,6 @@ events.post_event_for = (user, query, config, callback, timeout) ->
   events_api_url = config.intertwinkles.api_url + "/api/events/"
   post = {
     event: query
-    user: user
     api_key: config.intertwinkles.api_key
   }
 
