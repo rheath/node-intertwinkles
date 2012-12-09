@@ -66,9 +66,15 @@ attach = (config, app, iorooms) ->
                 build_room_users_list_for room, socket.session, (err, users) ->
                   socket.emit "room_users", users
                   socket.broadcast.to(room).emit "room_users", users
+            
+            # Join a room for our user ID -- but not an iorooms room, a
+            # low-level room for utility broadcasts, without any menues.
+            socket.join(socket.session.auth.user_id)
 
     # Log out
     iorooms.onChannel "logout", (socket, data) ->
+      if socket.session.auth?.user_id?
+        socket.leave(socket.session.auth.user_id)
       # Keep the session around, so that we maintain our socket list.
       socket.session.auth = null
       socket.session.groups = null
@@ -429,6 +435,17 @@ notifications.suppress_notice = (user, notification_id, config, callback) ->
     {api_key: config.intertwinkles.api_key, user: user, notification_id: notification_id},
     callback
   )
+
+notifications.broadcast_notices = (socket, notices) ->
+  user_id = socket.session.auth?.user_id
+  for notice in notices
+    #XXX: Could optimize this by packing notices per-user before emitting
+    console.log "broadcast to #{notice.recipient.toString()}", notice
+    payload = {notifications: [notice]}
+    socket.broadcast.to(notice.recipient.toString()).emit "notifications", payload
+    if user_id == notice.recipient.toString()
+      console.log "self"
+      socket.emit "notifications", payload
 
 #
 # Search

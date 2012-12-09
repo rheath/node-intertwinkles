@@ -62,7 +62,7 @@ urlize = (text, trim_url_limit=null, nofollow=true, escape=(->)) ->
       if url
         trimmed = trim_url(middle)
         # Add zero-width spaces for line wrapping.
-        trimmed = trimmed.replace(/(.{10})/g, "$1\u200b")
+        trimmed = trimmed.replace(/([-\.\/]|.{30})/g, "$1\u200b")
         words[i] = "#{escape(lead)}<a href=\"#{url}\"#{nofollow_attr}>#{escape(trimmed)}</a>#{escape(trail)}"
       else
         words[i] = escape(word)

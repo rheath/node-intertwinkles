@@ -8,7 +8,7 @@ notification_menu_template = _.template("""
     <% for (var i = 0; i < notices.length; i++) { %>
       <% var notice = notices[i]; %>
       <li class='notification <%= notice.read ? "read" : "" %>'>
-        <a href='<%= notice.url %>' data-notification-id='<%= notice._id %>'>
+        <a href='<%= INTERTWINKLES_APPS[notice.application].url + notice.url %>' data-notification-id='<%= notice._id %>'>
           <div class='sender'>
             <% var sender = intertwinkles.users[notice.sender]; %>
             <% if (sender) { %>
@@ -26,6 +26,11 @@ notification_menu_template = _.template("""
   </ul>
 """)
 
+class Notification extends Backbone.Model
+  idAttribute: '_id'
+class NotificationCollection extends Backbone.Collection
+  model: Notification
+
 class intertwinkles.NotificationMenu extends Backbone.View
   tagName: 'li'
   template: notification_menu_template
@@ -33,7 +38,7 @@ class intertwinkles.NotificationMenu extends Backbone.View
     'click .notification-trigger': 'openMenu'
 
   initialize: ->
-    @notices = []
+    @notices = new NotificationCollection()
     @dateViews = []
     @open = false
     interval = setInterval =>
@@ -55,21 +60,31 @@ class intertwinkles.NotificationMenu extends Backbone.View
 
   fetchNotifications: (data) =>
     if intertwinkles.is_authenticated()
+      @notices = new NotificationCollection()
       intertwinkles.socket.emit "get_notifications" # should result in 'render'
     else
-      @notices = []
       @render() # just nuke 'em!
 
   handleNotifications: (data) =>
-    @notices = data.notifications
+    for notification in data.notifications
+      found = @notices.get(notification._id)
+      # Remove notifications that come as "cleared" or "suppressed"
+      if notification.cleared or notification.suppressed
+        if found?
+          @notices.remove(found)
+      else if found
+        found.set(notification)
+      else
+        @notices.add(new Notification(notification))
     @render()
 
   render: =>
     view.remove() for view in @dateViews
+    notices = (n.toJSON() for n in @notices.models)
     if intertwinkles.is_authenticated() and @notices.length > 0
       @$el.addClass("notification-menu dropdown").html(@template {
         open: @open
-        notices: @notices
+        notices: notices
       })
 
       @dateViews = []

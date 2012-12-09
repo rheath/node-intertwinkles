@@ -333,7 +333,12 @@ class intertwinkles.UserChoice extends Backbone.View
     if @$("#id_user").val() != @model.get?("name") or @model.name
       @$(".icon-holder").html("")
       @$("#id_user_id").val("")
-      @$(".unknown").html("Not a known group member.")
+      if intertwinkles.is_authenticated()
+        @$(".unknown").html("Not a known group member.")
+      else
+        @$(".unknown").html("
+          Sign in first to see your groups. &#8599;
+        ")
 
   source: (query) ->
     return ("#{id}" for id,u of intertwinkles.users)
