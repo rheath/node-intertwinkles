@@ -443,7 +443,6 @@ notifications.broadcast_notices = (socket, notices) ->
     payload = {notifications: [notice]}
     socket.broadcast.to(notice.recipient.toString()).emit "notifications", payload
     if user_id == notice.recipient.toString()
-      console.log "self"
       socket.emit "notifications", payload
 
 #

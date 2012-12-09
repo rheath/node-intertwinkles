@@ -129,35 +129,6 @@ toolbar_template = _.template("""
   <div class='navbar navbar-top nav'>
     <div class='navbar-inner'>
       <div class='container-fluid'>
-        <ul class='nav' role='navigation'>
-          <li class='dropdown'>
-            <a class='brand dropdown-toggle' data-toggle='dropdown' href='#'
-               role='button' id='dlogo'>
-              <span class='visible-phone'>
-                I<span class='intertwinkles'>T</span>
-                <span class='appname'><%= apps[0].name.substr(0, 1) %></span>
-                <b class='caret'></b>
-                <span class='label' style='font-size: 50%;'>B</span>
-              </span>
-              <span class='hidden-phone'>
-                Inter<span class='intertwinkles'>Twinkles</span>:
-                <span class='appname'><%= apps[0].name %></span>
-                <b class='caret'></b>
-                <span class='label' style='font-size: 50%;'>BETA</span>
-              </span>
-            </a>
-            <ul class='dropdown-menu appmenu' role='menu' aria-labelledby='dlogo'>
-              <% for (var i = 0; i < apps.length; i++) { %>
-                <% var app = apps[i]; %>
-                <li class='<%= i == 0 ? "thisapp" : "" %>'>
-                  <a href='<%= app.url %>'>
-                    <b><%= app.name %></b>: <%= app.about %>
-                  </a>
-                </li>
-              <% } %>
-            </ul>
-          </li>
-        </ul>
         <ul class='nav pull-right'>
           <li class='search-menu dropdown'>
             <a href='#' title='search' data-toggle='dropdown' class='search-menu-trigger'>
@@ -183,6 +154,34 @@ toolbar_template = _.template("""
           <li class='user-menu dropdown'></li>
           <li class='auth_frame'></li>
         </ul>
+        <a class='brand dropdown-toggle'
+           data-target='.nav-collapse' data-toggle='collapse' href='#'
+           role='button' id='dlogo'>
+          <span class='visible-phone'>
+            I<span class='intertwinkles'>T</span>
+            <span class='appname'><%= apps[0].name.substr(0, 1) %></span>
+            <b class='caret'></b>
+            <span class='label' style='font-size: 50%;'>B</span>
+          </span>
+          <span class='hidden-phone'>
+            Inter<span class='intertwinkles'>Twinkles</span>:
+            <span class='appname'><%= apps[0].name %></span>
+            <b class='caret'></b>
+            <span class='label' style='font-size: 50%;'>BETA</span>
+          </span>
+        </a>
+        <div class='pull-left nav-collapse collapse' style='height: 0px;'>
+          <ul class='nav appmenu'>
+            <% for (var i = 0; i < apps.length; i++) { %>
+              <% var app = apps[i]; %>
+              <li class='<%= i == 0 ? "active" : "" %>'>
+                <a href='<%= app.url %>'>
+                  <b><%= app.name %></b>: <%= app.about %>
+                </a>
+              </li>
+            <% } %>
+          </ul>
+        </div>
       </div>
     </div>
   </div>

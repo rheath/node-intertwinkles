@@ -53,13 +53,6 @@ small-green()
 .typeahead
   z-index: 1051
 
-.pull-right .dropdown-menu:after
-  left: auto
-  right: 13px
-.pull-right .dropdown-menu
-  left: auto
-  right: 0
-
 .btn.loading
   background-image: url("/static/img/spinner.gif")
   background-repeat: no-repeat
@@ -75,6 +68,18 @@ small-green()
 .dropdown-menu li.linkless
   padding: 3px 20px
 
+.navbar .pull-right > li > .dropdown-menu.search
+  right: -80px
+  &:after, &:before
+    right: 92px
+
+.pull-right .dropdown-menu:after
+  left: auto
+  right: 13px
+.pull-right .dropdown-menu
+  left: auto
+  right: 0
+
 
 /*
   Basic styles
@@ -82,7 +87,7 @@ small-green()
 
 body
   background: url("/static/img/whitegrain.png") repeat
-  min-width: 240px
+  min-width: 320px
   color: #210700
   line-height: 1.5em
 
@@ -175,8 +180,17 @@ it-color = #ff0287
   App menu
 */
 .appmenu
-  .thisapp
+  .active
     font-size: 120%
+.nav-collapse .nav > li > a
+  font-weight: normal
+.nav-collapse .nav li
+  width: 100%
+.nav .brand.dropdown-toggle .caret
+  border-bottom-color: #777
+  border-top-color: #777
+  color: #777
+  margin-top: 8px
 
 
 /*
@@ -233,11 +247,11 @@ input.color
   cursor: text
 
 .sharing-settings-button .popover
-  width: 400px
+  width: 350px
 .pull-right .sharing-settings-button .popover
-  left: -220px !important
+  left: -150px !important
   .arrow
-    left: 320px !important
+    left: 250px !important
 
 ul.sharing-online-group
   li
@@ -313,6 +327,8 @@ ul.sharing-online-group
 
 .search-menu.dropdown form
   margin: 0px
+.search.dropdown-menu
+  right: -150px
 
 
   
@@ -336,7 +352,7 @@ footer, #push
 
 // Footer styles other than stickyness
 footer
-  opacity: 0.5
+  opacity: 0.3
   transition-property: 'opacity'
   transition-duration: 500ms
   &:hover
