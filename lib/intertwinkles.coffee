@@ -440,7 +440,6 @@ notifications.broadcast_notices = (socket, notices) ->
   user_id = socket.session.auth?.user_id
   for notice in notices
     #XXX: Could optimize this by packing notices per-user before emitting
-    console.log "broadcast to #{notice.recipient.toString()}", notice
     payload = {notifications: [notice]}
     socket.broadcast.to(notice.recipient.toString()).emit "notifications", payload
     if user_id == notice.recipient.toString()
