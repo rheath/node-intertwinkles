@@ -29,6 +29,12 @@ attach = (config, app, iorooms) ->
           room_list.push(info)
          cb(err, { room: room, list: room_list })
 
+    iorooms.authorizeConnection = (session, callback) ->
+      if not session.anon_id?
+        session.anon_id = uuid.v4()
+        iorooms.saveSession(session, callback)
+      callback()
+
     # Log in
     iorooms.onChannel 'verify', (socket, reqdata) ->
       auth.verify reqdata.assertion, config, (err, auth, groupdata) ->
@@ -132,22 +138,16 @@ attach = (config, app, iorooms) ->
 
     # Join room
     iorooms.on "join", (data) ->
-      join = (err) ->
+      if err? then return data.socket.emit "error", {error: err}
+      build_room_users_list_for data.room, data.socket.session, (err, users) ->
         if err? then return data.socket.emit "error", {error: err}
-        build_room_users_list_for data.room, data.socket.session, (err, users) ->
-          if err? then return data.socket.emit "error", {error: err}
-          # inform the client of its anon_id on first join.
-          data.socket.emit "room_users", _.extend {
-              anon_id: data.socket.session.anon_id
-            }, users
-          if data.first
-            # Tell everyone else in the room.
-            data.socket.broadcast.to(data.room).emit "room_users", users
-      if not data.socket.session.anon_id?
-        data.socket.session.anon_id = uuid.v4()
-        iorooms.saveSession(data.socket.session, join)
-      else
-        join()
+        # inform the client of its anon_id on first join.
+        data.socket.emit "room_users", _.extend {
+            anon_id: data.socket.session.anon_id
+          }, users
+        if data.first
+          # Tell everyone else in the room.
+          data.socket.broadcast.to(data.room).emit "room_users", users
 
     # Leave room
     iorooms.on "leave", (data) ->
@@ -158,7 +158,13 @@ attach = (config, app, iorooms) ->
 
   if app?
     null
+    #
     # TODO: Add routes to "/verify", "/logout", "/edit_profile" etc for AJAX
+    #
+
+
+
+
 
 #
 # Authorize a request originating from the browser with Mozilla persona and the
@@ -200,6 +206,7 @@ auth.get_initial_data = (session) ->
     email: session?.auth?.email or null
     groups: session?.groups or {}
     users: session?.users or {}
+    anon_id: session.anon_id
   }
 
 #
@@ -467,6 +474,28 @@ search.post_search_index = (params, config, callback) ->
 
 search.remove_search_index = (params, config, callback) ->
   _post_search(params, config, callback, 'DELETE')
+#
+# Twinkles
+#
+
+twinkles = {}
+_post_twinkle = (params, config, callback, method) ->
+  twinkle_url = "#{config.intertwinkles.api_url}/api/twinkles/"
+  data = _.extend { api_key: config.intertwinkles.api_key }, params
+  if method == 'GET'
+    utils.get_json twinkle_url, data, callback
+  else
+    utils.post_data twinkle_url, data, callback, method
+
+twinkles.post_twinkle = (params, config, callback) ->
+  _post_twinkle(params, config, callback, 'POST')
+
+twinkles.get_twinkles = (params, config, callback) ->
+  _post_twinkle(params, config, callback, 'GET')
+
+twinkles.remove_twinkle = (params, config, callback) ->
+  _post_twinkle(params, config, callback, 'DELETE')
+
 
 #
 # Utilities
@@ -533,4 +562,6 @@ utils.post_data = (post_url, data, callback, method='POST') ->
   req.write(data)
   req.end()
 
-module.exports = _.extend {attach}, auth, sharing, mongo, events, notifications, search, utils
+module.exports = _.extend(
+  {attach}, auth, sharing, mongo, events, notifications, search, utils, twinkles
+)

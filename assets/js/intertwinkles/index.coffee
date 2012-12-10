@@ -30,6 +30,7 @@
 #= require ./sharing
 #= require ./events
 #= require ./notifications
+#= require ./twinkles
 #= require ./utilities
 
 $(document).ready ->
