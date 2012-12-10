@@ -8,7 +8,6 @@ class Twinkle extends Backbone.Model
 class TwinkleCollection extends Backbone.Collection
   model: Twinkle
 
-
 #
 # Create twinkle views for all the .twinkles elements in the scope 'scope'.
 # Returns a map of twinkle views.  For efficiency, when re-rendering, pass
@@ -34,8 +33,8 @@ intertwinkles.twinklify = (scope, old_view_map) ->
     current_view_keys.push(hash)
 
     if old_view_map[hash]
-      $el.replaceWith(old_view_map[hash].el)
-      view.render()
+      $el.replaceWith(old_view_map[hash].el).show()
+      old_view_map[hash].render()
     else
       view = new TwinkleView(attrs)
       view.render()
@@ -94,7 +93,7 @@ class TwinkleView extends intertwinkles.BaseView
           if @collection.length > 0 then "Twinkled by:" else "Twinkles:"
         content: =>
           if @collection.length > 0
-            return (@renderUser(model.sender) for model in @collection.models).join(", ")
+            return (@renderUser(model.get("sender")) for model in @collection.models).join(", ")
           else
             return "No twinkles yet. Click to twinkle."
         placement: "top"
@@ -104,7 +103,6 @@ class TwinkleView extends intertwinkles.BaseView
       @secondRender = true
 
   parseTwinkles: (data) =>
-    console.log(data)
     render = false
     if data.remove?
       removal = @collection.get(data.twinkle_id)
@@ -128,8 +126,8 @@ class TwinkleView extends intertwinkles.BaseView
     @render() if render
 
   getActive: => _.find(@collection.models, (m) -> (
-      (m.sender == intertwinkles.user.id) or
-      (m.sender == null and m.sender_anon_id == INITIAL_DATA.anon_id)
+      (m.get("sender") == intertwinkles.user.id) or
+      (m.get("sender") == null and m.get("sender_anon_id") == INITIAL_DATA.anon_id)
     ))
 
   isActive: =>
