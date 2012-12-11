@@ -9,14 +9,6 @@ border-box()
   -moz-box-sizing: border-box
   box-sizing: border-box
 
-user-select()
-  -webkit-touch-callout: none
-  -webkit-user-select: none
-  -khtml-user-select: none
-  -moz-user-select: none
-  -ms-user-select: none
-  user-select: none
-
 green-glow()
   background-color: rgba(255, 255, 255, 0.4)
   box-shadow: 0 0 25px 0 rgba(#ddd, 0.8), 0 0 5px 1px rgba(#eee, 0.8) inset
@@ -254,11 +246,12 @@ input.color
     left: 250px !important
 
 ul.sharing-online-group
+  
   li
     display: inline-block
-    &.room-users a
+    &:first-child a
       border-radius: 4px 0px 0px 4px
-    &.sharing a
+    &:last-child a
       border-radius: 0px 4px 4px 0px
 
 /*

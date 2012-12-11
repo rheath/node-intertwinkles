@@ -79,7 +79,6 @@ class TwinkleView extends intertwinkles.BaseView
   remove: =>
     intertwinkles.socket.removeListener "twinkles", @parseTwinkles
     super()
-    recipient: $el.attr("data-recipient")
 
   render: =>
     @loading = false
