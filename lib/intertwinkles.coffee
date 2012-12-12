@@ -458,6 +458,7 @@ notifications.broadcast_notices = (socket, notices) ->
 
 search = {}
 
+_search_index_timeout_queue = {}
 _post_search = (params, config, callback, method) ->
   search_url = config.intertwinkles.api_url + "/api/search/"
   data = _.extend({ api_key: config.intertwinkles.api_key }, params)
@@ -469,8 +470,24 @@ _post_search = (params, config, callback, method) ->
 search.search = (params, config, callback) ->
   _post_search(params, config, callback, 'GET')
 
-search.post_search_index = (params, config, callback) ->
-  _post_search(params, config, callback, 'POST')
+search.post_search_index = (params, config, callback, timeout) ->
+  # If we are passed a timeout argument, wait before posting a search.
+  # (Note that this is the opposite strategy from "event" timeouts -- the
+  # assumption being that for events, we want the earliest instance, but with
+  # search indexing, we want the latest).
+  if timeout?
+    key = [params.application, params.entity, params.type].join(":")
+    if _search_index_timeout_queue[key]?
+        delete _search_index_timeout_queue[key]
+
+    _search_index_timeout_queue[key] = setTimeout ->
+      console.info "Posting timeout search index: ", key
+      _post_search(params, config, null, 'POST')
+    , timeout
+    callback?(null, {status: "enqueued"})
+
+  else
+    _post_search(params, config, callback, 'POST')
 
 search.remove_search_index = (params, config, callback) ->
   _post_search(params, config, callback, 'DELETE')
@@ -532,6 +549,8 @@ utils.get_json = (get_url, query, callback) ->
 # Post the given data to the given URL as form encoded data; interpret the
 # response as JSON.
 utils.post_data = (post_url, data, callback, method='POST') ->
+  unless callback?
+    callback = (err, res) -> console.error(err) if err?
   post_url = url.parse(post_url)
   httplib = if post_url.protocol == 'https:' then https else http
   opts = {
@@ -545,11 +564,11 @@ utils.post_data = (post_url, data, callback, method='POST') ->
     answer = ''
     res.on 'data', (chunk) -> answer += chunk
     res.on 'end', ->
-      return unless callback?
       if res.statusCode == 200
         try
           json = JSON.parse(answer)
         catch e
+          console.error e
           return callback {error: e}
         if json.error?
           callback(json)

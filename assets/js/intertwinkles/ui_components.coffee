@@ -256,7 +256,7 @@ footer_template = _.template("""
         <a href='http://civic.mit.edu'>
           <img alt='The MIT Center for Civic Media' src='/static/img/C4CM.png'>
         </a>
-        and
+
         <a href='http://media.mit.edu/speech'>
           <img alt='The Speech + Mobility Group' src='/static/img/S_M.png'>
         </a>
