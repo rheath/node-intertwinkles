@@ -45,11 +45,12 @@ class FlashListView extends Backbone.View
         return false
       $(@el).append fv.render().el
 
-  # One global flash list:
-  window.flashList = new FlashMessageList
-  $("#flash").html new FlashListView(flashList).render().el
-  # Add to global flash list:
-  window.flash = (level, message) ->
-    model = new FlashMessage {level, message}
-    flashList.add(model)
+
+# One global flash list:
+window.flashList = new FlashMessageList
+$("#flash").html new FlashListView(flashList).render().el
+# Add to global flash list:
+window.flash = (level, message) ->
+  model = new FlashMessage {level, message}
+  flashList.add(model)
 

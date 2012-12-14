@@ -6,6 +6,7 @@ uuid        = require 'node-uuid'
 http        = require 'http'
 https       = require 'https'
 async       = require 'async'
+url         = require 'url'
 
 
 #
@@ -113,10 +114,10 @@ attach = (config, app, iorooms) ->
       if isNaN(data.model.icon.id)
         return respond("Invalid icon id")
 
-      profile_api_url = config.intertwinkles.api_url + "/api/profiles/"
+      profile_api_url = config.api_url + "/api/profiles/"
 
       utils.post_data profile_api_url, {
-        api_key: config.intertwinkles.api_key,
+        api_key: config.api_key,
         user: socket.session.auth.email
         name: data.model.name
         icon_id: data.model.icon.id
@@ -129,8 +130,8 @@ attach = (config, app, iorooms) ->
     # Get notifications
     iorooms.onChannel "get_notifications", (socket, data) ->
       return unless auth.is_authenticated(socket.session)
-      utils.get_json "#{config.intertwinkles.api_url}/api/notifications/", {
-        api_key: config.intertwinkles.api_key
+      utils.get_json "#{config.api_url}/api/notifications/", {
+        api_key: config.api_key
         user: socket.session.auth.email
       }, (err, data) ->
         return socket.emit "error", {error: err} if err?
@@ -172,15 +173,15 @@ attach = (config, app, iorooms) ->
 #
 auth = {}
 auth.verify = (assertion, config, callback) ->
-  unless config.intertwinkles?.api_url?
-    throw "Missing required config parameter: intertwinkles_api_url"
-  unless config.intertwinkles?.api_key?
-    throw "Missing required config parameter: intertwinkles_api_key"
+  unless config.api_url?
+    throw "Missing required config parameter: intertwinkles api_url"
+  unless config.api_key?
+    throw "Missing required config parameter: intertwinkles api_key"
 
   # Two-step operation: first, verify the assertion with Mozilla Persona.
   # Second, authorize the user with the InterTwinkles api server.
   #audience = "#{config.host}:#{config.port}"
-  audience = config.intertwinkles.api_url.split("://")[1]
+  audience = url.parse(config.api_url).host
   browserid.verify assertion, audience, (err, persona_response) ->
     if (err)
       callback({'error': err})
@@ -190,8 +191,8 @@ auth.verify = (assertion, config, callback) ->
         callback(err, persona_response, groups)
 
 auth.get_groups = (user, config, callback) ->
-  query = { api_key: config.intertwinkles.api_key, user: user }
-  utils.get_json(config.intertwinkles.api_url + "/api/groups/", query, callback)
+  query = { api_key: config.api_key, user: user }
+  utils.get_json(config.api_url + "/api/groups/", query, callback)
 
 # Clear all session properties that intertwinkles adds when we log in.
 auth.clear_auth_session = (session) ->
@@ -366,10 +367,10 @@ mongo.list_accessible_documents = (schema, session, cb, condition={}, sort="modi
 events = {}
 
 events.get_events = (query, config, callback) ->
-  events_api_url = config.intertwinkles.api_url + "/api/events/"
+  events_api_url = config.api_url + "/api/events/"
   get_data = {
     event: JSON.stringify(query),
-    api_key: config.intertwinkles.api_key
+    api_key: config.api_key
   }
   utils.get_json(events_api_url, get_data, callback)
 
@@ -393,10 +394,10 @@ events.post_event = (query, config, callback, timeout) ->
       return callback?(null, events.timeout_queue[key])
 
   # Prepare the event data.
-  events_api_url = config.intertwinkles.api_url + "/api/events/"
+  events_api_url = config.api_url + "/api/events/"
   post = {
     event: query
-    api_key: config.intertwinkles.api_key
+    api_key: config.api_key
   }
 
   # Post the event, and respond.
@@ -414,32 +415,32 @@ events.post_event = (query, config, callback, timeout) ->
 notifications = {}
 
 notifications.post_notices = (params, config, callback) ->
-  notice_api_url = config.intertwinkles.api_url + "/api/notifications/"
+  notice_api_url = config.api_url + "/api/notifications/"
   data = {
     params: params
-    api_key: config.intertwinkles.api_key
+    api_key: config.api_key
   }
   utils.post_data(notice_api_url, data, callback)
 
 notifications.get_notices = (user, config, callback) ->
   utils.get_json(
-    config.intertwinkles.api_url + "/api/notifications/",
-    {user: user, api_key: config.intertwinkles.api_key},
+    config.api_url + "/api/notifications/",
+    {user: user, api_key: config.api_key},
     callback
   )
 
 notifications.clear_notices = (params, config, callback) ->
   data = _.extend({
-    api_key: config.intertwinkles.api_key
+    api_key: config.api_key
   }, params)
   utils.post_data(
-    config.intertwinkles.api_url + "/api/notifications/clear", data, callback
+    config.api_url + "/api/notifications/clear", data, callback
   )
 
 notifications.suppress_notice = (user, notification_id, config, callback) ->
   utils.post_data(
-    config.intertwinkles.api_url + "/api/notifications/suppress",
-    {api_key: config.intertwinkles.api_key, user: user, notification_id: notification_id},
+    config.api_url + "/api/notifications/suppress",
+    {api_key: config.api_key, user: user, notification_id: notification_id},
     callback
   )
 
@@ -460,8 +461,8 @@ search = {}
 
 _search_index_timeout_queue = {}
 _post_search = (params, config, callback, method) ->
-  search_url = config.intertwinkles.api_url + "/api/search/"
-  data = _.extend({ api_key: config.intertwinkles.api_key }, params)
+  search_url = config.api_url + "/api/search/"
+  data = _.extend({ api_key: config.api_key }, params)
   if method == 'GET'
     utils.get_json(search_url, data, callback)
   else
@@ -497,8 +498,8 @@ search.remove_search_index = (params, config, callback) ->
 
 twinkles = {}
 _post_twinkle = (params, config, callback, method) ->
-  twinkle_url = "#{config.intertwinkles.api_url}/api/twinkles/"
-  data = _.extend { api_key: config.intertwinkles.api_key }, params
+  twinkle_url = "#{config.api_url}/api/twinkles/"
+  data = _.extend { api_key: config.api_key }, params
   if method == 'GET'
     utils.get_json twinkle_url, data, callback
   else
@@ -580,6 +581,14 @@ utils.post_data = (post_url, data, callback, method='POST') ->
   req.setHeader("Content-Length", data.length)
   req.write(data)
   req.end()
+
+# Return properties from an InterTwinkles app config that are safe for use in
+# templates.
+utils.clean_conf = (config) ->
+  return {
+    api_url: config.api_url
+    apps: config.apps
+  }
 
 module.exports = _.extend(
   {attach}, auth, sharing, mongo, events, notifications, search, utils, twinkles
