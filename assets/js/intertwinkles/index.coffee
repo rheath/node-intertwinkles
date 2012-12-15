@@ -2,6 +2,7 @@
 #= require ../vendor/jquery-ui-1.9.1.custom.js
 #= require ../vendor/jquerypp.custom.js
 #= require ../vendor/jquery.form.js
+#= require ../vendor/jquery.cookie.js
 #= require ../vendor/underscore.js
 #= require ../vendor/underscore-autoescape.js
 #= require ../vendor/backbone.js
@@ -32,6 +33,7 @@
 #= require ./notifications
 #= require ./twinkles
 #= require ./utilities
+#= require ./alphawarning
 
 $(document).ready ->
   $("span.intertwinkles").on "mouseover", ->
