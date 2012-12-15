@@ -478,3 +478,4 @@ class intertwinkles.SharingSettingsButton extends Backbone.View
     $("input[type=submit]", @modal).addClass("loading")
     @trigger "save", @sharing.sharing
     return false
+

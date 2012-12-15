@@ -137,6 +137,18 @@ attach = (config, app, iorooms) ->
         return socket.emit "error", {error: err} if err?
         socket.emit "notifications", data
 
+    # Get a short URL
+    iorooms.onChannel "get_short_url", (socket, data) ->
+      return unless data.application? and data.path? and data.callback?
+      return short.get_short_url {
+        application: data.application
+        path: data.path
+      }, config, (err, results) ->
+        socket.emit data.callback, {
+          error: if err? then err else undefined
+          short_url: results?.short_url
+        }
+
     # Join room
     iorooms.on "join", (data) ->
       if err? then return data.socket.emit "error", {error: err}
@@ -156,6 +168,9 @@ attach = (config, app, iorooms) ->
       build_room_users_list_for data.room, data.socket.session, (err, users) ->
         if err? then return data.socket.emit "error", {error: err}
         data.socket.broadcast.to(data.room).emit "room_users", users
+
+
+
 
   if app?
     null
@@ -590,6 +605,17 @@ utils.clean_conf = (config) ->
     apps: config.apps
   }
 
+#
+# Short URLs
+#
+
+short = {}
+
+short.get_short_url = (params, config, callback) ->
+  shortenify = "#{config.api_url}/api/shorten/"
+  params = _.extend {api_key: config.api_key}, params
+  utils.post_data(shortenify, params, callback)
+
 module.exports = _.extend(
-  {attach}, auth, sharing, mongo, events, notifications, search, utils, twinkles
+  {attach}, auth, sharing, mongo, events, notifications, search, utils, twinkles, short
 )
