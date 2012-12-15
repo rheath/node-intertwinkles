@@ -23,7 +23,7 @@ new_account_template = _.template("""
 edit_new_profile_template = _.template("""
   <div class='modal hide fade'>
     <div class='modal-body'>
-      <h1 style='text-align: center;'>Ready in 1, 2, 3:</h1><br />
+      <h3 style='text-align: center;'>Ready in 1, 2, 3:</h3><br />
       <div class='control-group'>
         <b>1: What is your name?</b><br />
         <input type='text' name='name' value='<%= name %>' />

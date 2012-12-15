@@ -37,11 +37,14 @@ onlogin = (assertion) ->
       intertwinkles.groups = data.groups
       user = _.find intertwinkles.users, (e) -> e.email == data.email
       if user?
-        intertwinkles.user.set(user)
+        if data.message == "NEW_ACCOUNT" or user.name == ""
+          intertwinkles.user.set(user, silent: true)
+        else
+          intertwinkles.user.set(user)
       else
         intertwinkles.user.clear()
     
-      if data.message == "NEW_ACCOUNT"
+      if data.message == "NEW_ACCOUNT" or user?.name == ""
         profile_editor = new intertwinkles.EditNewProfile()
         $("body").append(profile_editor.el)
         profile_editor.render()
