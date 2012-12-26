@@ -217,13 +217,16 @@ auth.clear_auth_session = (session) ->
 
 auth.is_authenticated = (session) -> return session.auth?.email?
 
-auth.get_initial_data = (session) ->
+auth.get_initial_data = (session, config) ->
   initial_data = {
     email: session?.auth?.email or null
     groups: session?.groups or {}
     users: session?.users or {}
     anon_id: session.anon_id
   }
+  if config.ALPHA_COOKIE_DOMAIN
+    initial_data.ALPHA_COOKIE_DOMAIN = config.ALPHA_COOKIE_DOMAIN
+  return initial_data
 
 #
 # Permissions. Expects 'session' to have auth and groups params as populated by

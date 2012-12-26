@@ -23,4 +23,7 @@ unless $.cookie("intertwinklesalpha")
   modal = $(modal_template)
   $("body").append(modal)
   modal.modal('show')
-  $.cookie("intertwinklesalpha", "yup", {expires: 1})
+  opts = {expires: 1}
+  if intertwinkles.ALPHA_COOKIE_DOMAIN
+    opts.domain = intertwinkles.ALPHA_COOKIE_DOMAIN
+  $.cookie("intertwinklesalpha", "yup", opts)
