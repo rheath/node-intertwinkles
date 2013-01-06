@@ -15,7 +15,7 @@ user_menu_template = _.template("""
     <b class='caret'></b>
   </a>
   <ul class='dropdown-menu' role='menu'>
-    <li><a tabindex='-1' href='<%= INTERTWINKLES_APPS.home.url %>/profiles/edit'><i class='icon icon-cog'></i> Settings</a></li>
+    <li><a tabindex='-1' href='<%= INTERTWINKLES_APPS.www.url %>/profiles/edit'><i class='icon icon-cog'></i> Settings</a></li>
     <li class='divider'></li>
     <li><a tabindex='-1' class='sign-out' href='#'>Sign out</a></li>
   </ul>
@@ -139,7 +139,7 @@ toolbar_template = _.template("""
             <ul class='dropdown-menu search' role='menu' aria-labeledby='dlogo'>
               <li class='linkless'>
                 <form class='form-search'
-                      action='<%= INTERTWINKLES_APPS.home.url %>/search/'
+                      action='<%= INTERTWINKLES_APPS.www.url %>/search/'
                       method='GET'>
                   <div class='input-append'>
                     <input class='input-medium search-query' type='text' name='q' />
@@ -242,9 +242,9 @@ footer_template = _.template("""
       <div class='span4 about-links'>
         <h2>About</h2>
         <ul>
-          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/'>About</a><small>: Free software revolutionary research</small></li>
-          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
-          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.www.url}/about/'>About</a><small>: Free software revolutionary research</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.www.url}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
+          <li><a href='#{INTERTWINKLES_APPS.www.url}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
           <li><a href='http://bitbucket.org/yourcelf/intertwinkles/'>Source Code</a><small>: Run your own!</small></li>
         </ul>
       </div>
@@ -253,7 +253,7 @@ footer_template = _.template("""
         <ul>
           <li><a href='http://lists.byconsens.us/mailman/listinfo/design'>Codesign mailing list</a></li>
           <li><a href='http://project.intertwinkles.org/'>Project tracker</a></li>
-          <li><a href='#{INTERTWINKLES_APPS.home.url}/about/related/'>Related projects</a></li>
+          <li><a href='#{INTERTWINKLES_APPS.www.url}/about/related/'>Related projects</a></li>
         </ul>
       </div>
       <div class='span4 sponsors'>
@@ -396,7 +396,7 @@ group_choice_template = _.template("""
       You don't have any groups yet.
     <% } %>
     <br />
-    (<%= has_group ? "or " : "" %><a href='<%= INTERTWINKLES_APPS.home.url %>/groups/new/'>create a new group</a>)
+    (<%= has_group ? "or " : "" %><a href='<%= INTERTWINKLES_APPS.www.url %>/groups/new/'>create a new group</a>)
   <% } else { %>
     Sign in to add a group.
   <% } %>

@@ -12,7 +12,7 @@ new_account_template = _.template("""
         <%= intertwinkles.user.get('name') %>
       </blockquote>
       <p>Edit your settings to choose better ones!</p>
-      <a class='btn' href='<%= INTERTWINKLES_APPS.home.url %>/profiles/edit'>Edit settings</a>
+      <a class='btn' href='<%= INTERTWINKLES_APPS.www.url %>/profiles/edit'>Edit settings</a>
     </div>
     <div class='modal-footer'>
       <a href='#' class='btn' data-dismiss='modal'>Close</a>
@@ -136,7 +136,7 @@ icon_chooser_template = _.template("""
   <input name='icon' id='id_icon' value='<%= chosen %>' type='hidden' />
   <div class='profile-image-chooser'><img src='/static/img/spinner.gif' alt='Loading...'/></div>
   <div>
-    <a class='attribution-link' href='#{INTERTWINKLES_APPS.home.url}/profiles/icon_attribution/'>
+    <a class='attribution-link' href='#{INTERTWINKLES_APPS.www.url}/profiles/icon_attribution/'>
       About these icons
     </a>
   </div>

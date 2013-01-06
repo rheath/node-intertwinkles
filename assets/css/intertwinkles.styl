@@ -166,7 +166,7 @@ it-color = #ff0287
   background: rgba(255, 255, 255, 0.2)
 .subnav .navbar-inner
   background-color: #fafafa
-  background-image: linear-gradient(center top, #fff, #f2f2f2)
+  background-image: linear-gradient(top, #fff, #f2f2f2)
   #group_menu .group-name
     cursive-font()
     font-size: 200%
@@ -351,13 +351,23 @@ html,body { height: 100% }
   height: auto !important
   height: 100%
   margin: 0 auto (0px - footer-height)
-  @media (max-width: 767px) { margin: 0 auto (0px - footer-height-narrow) }
+
+@media (max-width: 767px)
+  #page
+    margin: 0 auto (0px - footer-height-narrow)
 
 footer, #push
   height: footer-height
-  @media (max-width: 767px) { height: footer-height-narrow }
+
+@media (max-width: 767px)
+  footer, #push 
+    height: footer-height-narrow
 
 // Footer styles other than stickyness
+@media (max-width: 767px)
+  footer
+    .footer-content
+      height: footer-height-narrow - 2px
 footer
   opacity: 0.3
   transition-property: 'opacity'
@@ -373,6 +383,7 @@ footer
     left: 0
     width: 100%
     height: 100%
+
   .footer-content
     border-color: #EEE
     border-color: #EEE -moz-use-text-color #fff
@@ -386,8 +397,8 @@ footer
     -moz-border-right-colors: none
     -moz-border-top-colors: none
     height: footer-height - 2px
-    @media (max-width: 767px) { height: footer-height-narrow - 2px }
     position: relative
+
   .sponsors, .about-links, .community
     h2
       font-size: 120%
