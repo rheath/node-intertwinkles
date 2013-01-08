@@ -2,5 +2,5 @@
   font-family: 'Indie Flower';
   font-style: normal;
   font-weight: 400;
-  src: local('Indie Flower'), local('IndieFlower'), url(IndieFlower.ttf) format('truetype');
+  src: local('Indie Flower'), local('IndieFlower'), url(/static/css/IndieFlower.ttf) format('truetype');
 }
