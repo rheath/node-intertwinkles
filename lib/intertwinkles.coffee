@@ -7,13 +7,14 @@ http        = require 'http'
 https       = require 'https'
 async       = require 'async'
 url         = require 'url'
-
+RoomManager = require('iorooms').RoomManager
 
 #
 # Attach intertwinkles to the given Express app and RoomManager iorooms.
 #
-attach = (config, app, iorooms) ->
-  if iorooms?
+attach = (config, app, io, sessionStore) ->
+  if io?
+    iorooms = new RoomManager("/io-intertwinkles", io, sessionStore)
     # Build a list of everyone who is currently in the room, anonymous or no.
     build_room_users_list_for = (room, self_session, cb) ->
       iorooms.getSessionsInRoom room, (err, sessions) ->

@@ -176,7 +176,7 @@ toolbar_template = _.template("""
             <% for (var i = 0; i < apps.length; i++) { %>
               <% var app = apps[i]; %>
               <li class='<%= i == 0 ? "active" : "" %>'>
-                <a href='<%= app.url %>'>
+                <a href='<%= app.url + "/" %>'>
                   <b><%= app.name %></b>: <%= app.about %>
                 </a>
               </li>

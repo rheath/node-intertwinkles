@@ -25,6 +25,7 @@
 #= require ../../bootstrap/js/bootstrap-affix.js
 #= require ../flash
 #= require ./common
+#= require ./socket
 #= require ./authentication
 #= require ./profiles
 #= require ./ui_components
