@@ -140,6 +140,7 @@ attach = (config, app, io, sessionStore) ->
 
     # Get a short URL
     iorooms.onChannel "get_short_url", (socket, data) ->
+      console.log data
       return unless data.application? and data.path? and data.callback?
       return short.get_short_url {
         application: data.application
@@ -225,8 +226,8 @@ auth.get_initial_data = (session, config) ->
     users: session?.users or {}
     anon_id: session.anon_id
   }
-  if config.ALPHA_COOKIE_DOMAIN
-    initial_data.ALPHA_COOKIE_DOMAIN = config.ALPHA_COOKIE_DOMAIN
+  if config.alpha_cookie_domain
+    initial_data.ALPHA_COOKIE_DOMAIN = config.alpha_cookie_domain
   return initial_data
 
 #
