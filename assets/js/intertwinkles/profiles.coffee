@@ -1,132 +1,81 @@
-new_account_template = _.template("""
-  <div class='modal hide fade'>
-    <div class='modal-header'>
-      <button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
-      <h3>Account created</h3>
-    </div>
-    <div class='modal-body'>
-      <p>
-      Your new account for the login &ldquo;<%= intertwinkles.user.get('email') %>&rdquo; was created, and you've been given the random icon and name:
-      <blockquote>
-        <img src='<%= intertwinkles.user.get('icon').small %>' />
-        <%= intertwinkles.user.get('name') %>
-      </blockquote>
-      <p>Edit your settings to choose better ones!</p>
-      <a class='btn' href='<%= INTERTWINKLES_APPS.www.url %>/profiles/edit'>Edit settings</a>
-    </div>
-    <div class='modal-footer'>
-      <a href='#' class='btn' data-dismiss='modal'>Close</a>
-    </div>
-  </div>
-""")
-
 edit_new_profile_template = _.template("""
-  <div class='modal hide fade'>
-    <div class='modal-body'>
-      <h3 style='text-align: center;'>Ready in 1, 2, 3:</h3><br />
-      <div class='control-group'>
-        <b>1: What is your name?</b><br />
-        <input type='text' name='name' value='<%= name %>' />
-      </div>
-      <div class='control-group'>
-        <b>2: What is your favorite color?</b><br />
-        <input type='text' name='color' value='<%= color %>' class='color' />
-        <span class='help-text color-label'></span>
-      </div>
-      <div class='control-group'>
-        <b>3. Which icon do you like the best?</b><br />
-        <div class='image-chooser'></div>
-      </div>
+<form class='new-profile-form'>
+  <div class='modal-body'>
+    <button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>
+    <h3 style='text-align: center;'>Ready in 1, 2, 3:</h3><br />
+    <div class='control-group'>
+      <b>1: What is your name?</b><br />
+      <input type='text' name='name' value='<%= name %>' />
     </div>
-    <div class='modal-footer'>
-      <input type='submit' value='OK, Ready, Go!' class='btn btn-primary btn-large' />
+    <div class='control-group'>
+      <b>2: What is your favorite color?</b><br />
+      <div class='help-text color-label'></div>
+      <input type='text' name='color' value='<%= color %>' class='color' />
+    </div>
+    <div class='control-group'>
+      <b>3. Which icon do you like the best?</b><br />
+      <div class='image-chooser'></div>
     </div>
   </div>
+  <div class='modal-footer'>
+    <input type='submit' value='OK, Ready, Go!' class='btn btn-primary btn-large' />
+  </div>
+</form>
 """)
 
-class intertwinkles.EditNewProfile extends Backbone.View
+class intertwinkles.EditNewProfile extends intertwinkles.BaseModalFormView
   template: edit_new_profile_template
-  events:
-    'click input[type=submit]': 'saveProfile'
-
-  remove: =>
-    @chooser?.remove()
-    super()
+  initialize: ->
+    icon = intertwinkles.user.get("icon")
+    super({
+      context: {
+        name: intertwinkles.user.get("name")
+        color: icon?.color or ""
+        icon_id: icon?.id or ""
+      }
+      validation: [
+        ["[name=name]", ((v) -> v or null), "Please choose a name."],
+        ["[name=icon]", ((v) -> v or null), "Please choose an icon."],
+        ["[name=color]", (v) ->
+          if v and /[a-f0-9A-F]{6}/.exec(v)? then v else null
+        , "Invalid color"]
+      ]
+    })
+    @on "submitted", @saveProfile
 
   render: =>
-    name = intertwinkles.user.get("name")
-    icon = intertwinkles.user.get("icon")
-    if icon?
-      color = icon.color
-      icon_id = icon.id
-    else
-      color = ""
-      icon_id = ""
-    @$el.html(@template({name, color}))
-    chooser = new intertwinkles.IconChooser(chosen: icon_id)
-    @$(".image-chooser").html(chooser.el)
-    chooser.render()
-    @chooser = chooser
-
-    @$(".modal").modal("show")
-    name_color = =>
-      @$(".color-label").html(intertwinkles.match_color(@$(".color").val()))
-    @$(".color").on "change", name_color
-    name_color()
-
-    # Make it bigger.
-    #width = Math.max(@$(".modal").width(), $(window).width() * 0.8)
-    #height = Math.max(@$(".modal").height(), $(window).height() * 0.8)
-    #@$(".modal").css({
-    #  width: width + "px"
-    #  "margin-left": -(width / 2) + "px"
-    #  "top": (height / 2) + "px"
-    #})
-    #@$(".modal-body").css({
-    #  "max-height": (height - 48) + "px"
-    #})
+    super()
+    @addView(".image-chooser", new intertwinkles.IconChooser({
+      chosen: intertwinkles.user.get("icon")?.id
+    }))
+    @$(".color").on "change", =>
+      console.log "wat"
+      val = @$(".color").val()
+      @$(".color-label").css("color", "#" + val).html(intertwinkles.match_color(val))
+    @$(".color").change()
     this
 
-  saveProfile: =>
-    new_name = @$("input[name=name]").val()
-    new_icon = @$("input[name=icon]").val()
-    new_color = @$("input[name=color]").val()
-    @$(".error-msg").remove()
-    @$("input[type=submit]").addClass("loading")
-    errors = []
-    if not new_name
-      errors.push({field: "name", message: "Please choose a name."})
-    if not new_icon
-      errors.push({field: "icon", message: "Please choose an icon."})
-    if not new_color or not /[a-f0-9A-F]{6}/.exec(new_color)?
-      errors.push({field: "color", message: "Invalid color..."})
-    if errors.length != 0
-      for error in errors
-        @$("input[name=#{error.field}]").parent().addClass("error")
-        @$("input[name=#{error.field}]").after(
-          "<span class='help-inline error-msg'>#{error.message}</span>"
-        )
-        @$("input[type=submit]").removeClass("loading")
-    else
-      intertwinkles.socket.once "profile_updated", (data) =>
-        @$("input[type=submit]").removeClass("loading")
-        if data.error?
-          flash "error", "Oh Noes... Server errorrrrrrr........."
-          @$(".modal").modal("hide")
-          @trigger "done"
-        else
-          intertwinkles.user.set(data.model)
-          @$(".modal").modal("hide")
-          @trigger "done"
+  saveProfile: (cleaned_data) =>
+    intertwinkles.socket.once "profile_updated", (data) =>
+      @$("input[type=submit]").removeClass("loading")
+      if data.error?
+        flash "error", "Oh Noes... Server errorrrrrrr........."
+        @$el.modal("hide")
+        @trigger "done"
+      else
+        intertwinkles.user.set(data.model)
+        @$el.modal("hide")
+        @trigger "done"
 
-      intertwinkles.socket.emit "edit_profile", {
-        callback: "profile_updated"
-        model: {
-          email: intertwinkles.user.get("email")
-          name: new_name
-          icon: { id: new_icon, color: new_color }
-        }
+    intertwinkles.socket.emit "edit_profile", {
+      callback: "profile_updated"
+      model: {
+        email: intertwinkles.user.get("email")
+        name: cleaned_data.name
+        icon: { id: cleaned_data.icon, color: cleaned_data.color }
       }
+    }
+    @remove()
 
 #
 # Icon Chooser widget

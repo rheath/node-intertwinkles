@@ -26,6 +26,7 @@ onlogin = (assertion) ->
   console.log "onlogin"
   if window.INTERTWINKLES_AUTH_LOGOUT?
     return intertwinkles.request_logout()
+
   finish = ->
     if window.INTERTWINKLES_AUTH_REDIRECT?
       window.location.href = INTERTWINKLES_AUTH_REDIRECT
@@ -43,14 +44,11 @@ onlogin = (assertion) ->
           intertwinkles.user.set(user)
       else
         intertwinkles.user.clear()
-    
+
       if data.message == "NEW_ACCOUNT" or user?.name == ""
         profile_editor = new intertwinkles.EditNewProfile()
         $("body").append(profile_editor.el)
         profile_editor.render()
-        profile_editor.on "done", ->
-          profile_editor.remove()
-          finish()
       else if old_user != intertwinkles.user.get("email")
         flash "info", "Welcome, #{intertwinkles.user.get("name")}"
         finish()
@@ -66,6 +64,7 @@ onlogin = (assertion) ->
     alert("Error: socket missing")
 
 onlogout = ->
+  console.log "onlogout"
   intertwinkles.users = null
   intertwinkles.groups = null
   if intertwinkles.socket

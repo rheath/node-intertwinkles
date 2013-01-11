@@ -1,5 +1,6 @@
-unless window.console?.log? and window.console?.error? and window.console?.debug? and window.console?.info?
-  window.console = {log: (->), error: (->), debug: (->), info: (->)}
+window.console ?= {}
+for key in ["log", "error", "debug", "info"]
+  window.console[key] ?= (->)
 unless window.intertwinkles?
   window.intertwinkles = intertwinkles = {}
 
@@ -27,7 +28,7 @@ class intertwinkles.BaseView extends Backbone.View
     dirty = false
     $(".error", container).removeClass("error")
     $(".error-msg", container).remove()
-    for [selector, test, msg] in selectors
+    for [selector, test, msg, name] in selectors
       el = @$(selector)
       if el.attr("type") == "checkbox"
         val = el.is(":checked")
@@ -36,7 +37,7 @@ class intertwinkles.BaseView extends Backbone.View
 
       clean = test(val)
       if clean?
-        cleaned_data[el.attr("name")] = clean
+        cleaned_data[name or el.attr("name")] = clean
       else
         dirty = true
         parent = el.closest(".control-group")
@@ -54,6 +55,34 @@ class intertwinkles.BaseView extends Backbone.View
       return "<span class='user'><img src='#{user.icon.tiny}' /> #{user.name}</span>"
     else
       return "<span class='user'><i class='icon-user'></i> #{name or "Anonymous"}</span>"
+
+class intertwinkles.BaseModalFormView extends intertwinkles.BaseView
+  events:
+    'submit form': 'submit'
+
+  initialize: (options={}) ->
+    super()
+    @context = options.context
+    @validation = options.validation
+
+  remove: =>
+    @$el.modal().on("hidden", => super())
+    @$el.modal('hide')
+
+  submit: (event) =>
+    event.preventDefault()
+    if @validation
+      cleaned_data = @validateFields(@el, @validation)
+    else
+      cleaned_data = null
+    if cleaned_data != false
+      $(event.currentTarget).addClass("loading").attr("disabled", true)
+      @trigger "submitted", cleaned_data
+
+  render: =>
+    @$el.addClass("modal hide fade")
+    @$el.html @template(@context)
+    @$el.modal('show')
 
 intertwinkles.BaseEvents = {
   'click .softnav': 'softNav'

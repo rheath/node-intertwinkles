@@ -69,7 +69,7 @@ class TwinkleView extends intertwinkles.BaseView
       application: options.application
       entity: options.entity
       subentity: options.subentity
-      recipient: options.recipient
+      recipient: options.recipient or null
       url: options.url or window.location.pathname
     }
     @socket.on "twinkles", @parseTwinkles
@@ -134,7 +134,7 @@ class TwinkleView extends intertwinkles.BaseView
   isActive: =>
     @getActive()?
 
-  toggleTwinkle: =>
+  toggleTwinkle: (event) =>
     unless @loading
       active = @getActive()
       if active?

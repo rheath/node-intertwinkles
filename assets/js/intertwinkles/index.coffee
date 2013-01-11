@@ -23,6 +23,8 @@
 #= require ../../bootstrap/js/bootstrap-carousel.js
 #= require ../../bootstrap/js/bootstrap-typeahead.js
 #= require ../../bootstrap/js/bootstrap-affix.js
+#= require ../../bootstrap/bootstrap-modal-2/bootstrap-modalmanager.js
+#= require ../../bootstrap/bootstrap-modal-2/bootstrap-modal.js
 #= require ../flash
 #= require ./common
 #= require ./socket
@@ -35,6 +37,8 @@
 #= require ./twinkles
 #= require ./utilities
 #= require ./alphawarning
+
+$.fn.modal.defaults.maxHeight = -> $(window).height() - 165
 
 $(document).ready ->
   $("span.intertwinkles").on "mouseover", ->
