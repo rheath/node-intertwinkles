@@ -245,7 +245,7 @@ footer_template = _.template("""
           <li><a href='#{INTERTWINKLES_APPS.www.url}/about/'>About</a><small>: Free software revolutionary research</small></li>
           <li><a href='#{INTERTWINKLES_APPS.www.url}/about/terms/'>Terms of Use</a><small>: Play nice</small></li>
           <li><a href='#{INTERTWINKLES_APPS.www.url}/about/privacy/'>Privacy Policy</a><small>: You own it</small></li>
-          <li><a href='http://bitbucket.org/yourcelf/intertwinkles/'>Source Code</a><small>: Run your own!</small></li>
+          <li><a href='http://github.com/yourcelf/intertwinkles/'>Source Code</a><small>: Run your own!</small></li>
         </ul>
       </div>
       <div class='span4 community'>

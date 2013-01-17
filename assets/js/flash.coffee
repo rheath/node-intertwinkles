@@ -22,16 +22,14 @@ class FlashView extends Backbone.View
   initialize: (flashModel) ->
     @model = flashModel
   render: =>
-    $(@el).html @template message: @model.get "message"
-    $(@el).addClass @model.get "level"
+    @$el.html @template message: @model.get "message"
+    @$el.addClass @model.get "level"
     if @model.get("level") != "error"
-      setTimeout =>
-        @closeMessage()
-      , 4000
+      setTimeout (=> @closeMessage()), 4000
     this
   closeMessage: (event) =>
     @trigger "close", @model
-    $(@el).remove()
+    @$el.remove()
     return false
 
 class FlashListView extends Backbone.View
@@ -43,11 +41,11 @@ class FlashListView extends Backbone.View
       fv.on "close", (model) =>
         @flashList.remove(model)
         return false
-      $(@el).append fv.render().el
+      @$el.append fv.render().el
 
 
 # One global flash list:
-window.flashList = new FlashMessageList
+window.flashList = new FlashMessageList()
 $("#flash").html new FlashListView(flashList).render().el
 # Add to global flash list:
 window.flash = (level, message) ->

@@ -74,7 +74,7 @@ attach = (config, app, io, sessionStore) ->
                 build_room_users_list_for room, socket.session, (err, users) ->
                   socket.emit "room_users", users
                   socket.broadcast.to(room).emit "room_users", users
-            
+
             # Join a room for our user ID -- but not an iorooms room, a
             # low-level room for utility broadcasts, without any menues.
             socket.join(socket.session.auth.user_id)
@@ -140,7 +140,6 @@ attach = (config, app, io, sessionStore) ->
 
     # Get a short URL
     iorooms.onChannel "get_short_url", (socket, data) ->
-      console.log data
       return unless data.application? and data.path? and data.callback?
       return short.get_short_url {
         application: data.application
